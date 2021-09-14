@@ -19,6 +19,9 @@ lemma wp_zop [wp, code_unfold]: "wp (mk_zop P \<sigma> Q v) b = [\<lambda> \<s>.
 lemma wlp_zop [wp, code_unfold]: "wlp (mk_zop P \<sigma> Q v) b = [\<lambda> \<s>. P v \<s> \<longrightarrow> (\<sigma> v \<dagger> [\<lambda> \<s>. Q v \<s> \<longrightarrow> b \<s>]\<^sub>e) \<s>]\<^sub>e"
   by (simp add: mk_zop_def wp)
 
+lemma itree_pre [dpre]: "itree_pre (mk_zop P \<sigma> Q v) = [\<lambda> \<s>. P v \<s>]\<^sub>e"
+  by (simp add: mk_zop_def dpre wp)
+
 text \<open> An operation can have its parameters supplied by an event, using the construct below. \<close>
 
 definition zop_event :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree) \<Rightarrow> ('e, 's) htree" where
