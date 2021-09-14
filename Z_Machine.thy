@@ -1,5 +1,5 @@
 theory Z_Machine
-  imports Z_Operations
+  imports Z_Operations "HOL-Library.Code_Target_Int"
   keywords "zmachine" "zoperation" :: "thy_decl_block"
     and "over" "init" "operations" "params" "pre" "update" "post" "\<in>"
 begin
@@ -40,5 +40,7 @@ Outer_Syntax.command @{command_keyword zmachine} "define a Z machine"
 Outer_Syntax.command @{command_keyword zoperation} "define a Z operation"
     (Z_Machine.parse_operation >> (Toplevel.local_theory NONE NONE o Z_Machine.mk_zop));
 \<close>
+
+lit_vars
 
 end
