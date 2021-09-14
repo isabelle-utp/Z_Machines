@@ -1,5 +1,5 @@
 theory Z_Machine
-  imports Z_Operations "Z_Toolkit.Z_Toolkit" "HOL-Library.Code_Target_Int"
+  imports Z_Operations "Z_Toolkit.Z_Toolkit" "HOL-Library.Code_Target_Numeral"
   keywords "zmachine" "zoperation" :: "thy_decl_block"
     and "over" "init" "operations" "params" "pre" "update" "post" "\<in>"
 begin
