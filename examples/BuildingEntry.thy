@@ -53,7 +53,8 @@ zoperation CEnterBuilding =
 definition ListRetrieveSet :: "CSystem \<Rightarrow> ASystem" where
 "ListRetrieveSet = \<lblot>s \<leadsto> set l\<rblot>"
 
-lemma "\<langle>ListRetrieveSet\<rangle>\<^sub>a \<Zcomp> AEnterBuilding p = CEnterBuilding p \<Zcomp> \<langle>ListRetrieveSet\<rangle>\<^sub>a"
+lemma "(\<langle>ListRetrieveSet\<rangle>\<^sub>a \<Zcomp> AEnterBuilding p) \<sqsubseteq> (CEnterBuilding p \<Zcomp> \<langle>ListRetrieveSet\<rangle>\<^sub>a)"
+  apply (auto simp add: refined_by_def dpre ListRetrieveSet_def wp usubst_eval AEnterBuilding_def)
   oops
 
 end
