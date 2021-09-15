@@ -1,7 +1,7 @@
 theory Z_Machine
   imports Z_Operations "Z_Toolkit.Z_Toolkit" "HOL-Library.Code_Target_Numeral"
   keywords "zmachine" "zoperation" :: "thy_decl_block"
-    and "over" "init" "operations" "params" "pre" "update" "post" "\<in>"
+    and "over" "init" "operations" "params" "pre" "update" "\<in>"
 begin
 
 text \<open> An operation is constructed from a precondition, update, and postcondition, all of which

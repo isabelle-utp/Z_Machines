@@ -96,7 +96,7 @@ val parse_operation =
   (Scan.optional (@{keyword "params"} |-- repeat1 parse_param) []) --
   (Scan.optional (@{keyword "pre"} |-- term) "True") --
   (Scan.optional (@{keyword "update"} |-- term) "[\<leadsto>]") --
-  (Scan.optional (@{keyword "post"} |-- term) "True"))
+  (Scan.optional (@{keyword "where"} |-- term) "True"))
   >> (fn (((((n, st), ps), g), upd), post) => Operation {name = n, state = st, params = ps, guard = g, update = upd, post = post})
    end;
 

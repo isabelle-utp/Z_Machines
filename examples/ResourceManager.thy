@@ -17,13 +17,13 @@ zoperation Allocate =
   over ResourceManager
   params r \<in> RES
   update "[free \<leadsto> free - {r}]"
-  post "r \<in> free"
+  where "r \<in> free"
 
 zoperation Allocate\<^sub>1 =
   over ResourceManager
   params r \<in> RES
   update "[free \<leadsto> free - {r}]"
-  post "r \<in> free \<and> r = Min free"
+  where "r \<in> free \<and> r = Min free"
 
 zoperation Deallocate =
   over ResourceManager
