@@ -32,8 +32,7 @@ zoperation Deallocate =
   update "[free \<leadsto> free \<union> {r}]"
 
 lemma Allocate\<^sub>1_refines_Allocate: "Allocate r \<sqsubseteq> Allocate\<^sub>1 r"
-  by (auto simp add: Allocate_def Allocate\<^sub>1_def input_in_rel dpre assigns_rel refined_by_def wp mk_zop_def
-      seq_rel assume_rel test_rel relcomp_unfold)
+  unfolding Allocate_def Allocate\<^sub>1_def by refine
 
 zmachine ResourceManagerProc =
   init "[res \<leadsto> RES, free \<leadsto> RES]"

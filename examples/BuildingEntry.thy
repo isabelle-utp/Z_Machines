@@ -43,19 +43,22 @@ simulate ABuildingEntry
 
 schema CSystem =
   l :: "staff list"
-  where "distinct l \<and> #l \<le> maxentry"
+  where 
+    "l \<in> iseq Staff" "#l \<le> maxentry"
 
 zoperation CEnterBuilding =
   params p \<in> Staff
-  pre "#l < maxentry \<and> p \<notin> set l"
+  pre "#l < maxentry \<and> p \<notin> ran l"
   update "[l \<leadsto> l @ [p]]"
 
-definition ListRetrieveSet :: "CSystem \<Rightarrow> ASystem" where
-"ListRetrieveSet = \<lblot>s \<leadsto> set l\<rblot>"
+definition ListRetrieveSet :: "CSystem \<Rightarrow> (_, ASystem) itree" where
+"ListRetrieveSet = \<questiondown>CSystem? \<Zcomp> \<langle>\<lblot>s \<leadsto> set l\<rblot>\<rangle>\<^sub>a"
 
-lemma "(\<langle>ListRetrieveSet\<rangle>\<^sub>a \<Zcomp> AEnterBuilding p) \<sqsubseteq> (CEnterBuilding p \<Zcomp> \<langle>ListRetrieveSet\<rangle>\<^sub>a)"
-  apply (auto simp add: refined_by_def dpre ListRetrieveSet_def wp usubst_eval AEnterBuilding_def)
-  oops
-
+lemma "p \<in> Staff \<Longrightarrow> (ListRetrieveSet \<Zcomp> AEnterBuilding p) \<sqsubseteq> (CEnterBuilding p \<Zcomp> ListRetrieveSet)"
+  unfolding ListRetrieveSet_def AEnterBuilding_def CEnterBuilding_def
+  apply refine_auto
+   apply (simp add: distinct_card)
+  done
+  
 end
 
