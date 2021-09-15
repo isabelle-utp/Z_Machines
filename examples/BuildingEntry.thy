@@ -14,7 +14,7 @@ consts
 
 schema ASystem = 
   s :: "\<bbbP> staff"
-  where "#s < maxentry"
+  where "s \<in> \<bbbF> Staff" "#s < maxentry"
 
 record_default ASystem
 
@@ -39,12 +39,14 @@ def_consts
   Staff = "{0..10}"
   maxentry = "5"
 
-simulate ABuildingEntry
+animate ABuildingEntry
 
 schema CSystem =
   l :: "staff list"
   where 
     "l \<in> iseq Staff" "#l \<le> maxentry"
+
+record_default CSystem
 
 zoperation CEnterBuilding =
   params p \<in> Staff
@@ -53,6 +55,14 @@ zoperation CEnterBuilding =
 
 definition ListRetrieveSet :: "CSystem \<Rightarrow> (_, ASystem) itree" where
 "ListRetrieveSet = \<questiondown>CSystem? \<Zcomp> \<langle>\<lblot>s \<leadsto> set l\<rblot>\<rangle>\<^sub>a"
+
+definition SetRetrieveList :: "ASystem \<Rightarrow> (_, CSystem) itree" where
+"SetRetrieveList = \<questiondown>ASystem? \<Zcomp> \<langle>\<lblot>l \<leadsto> sorted_list_of_set s\<rblot>\<rangle>\<^sub>a"
+
+find_theorems "(\<circ>\<^sub>s)"
+
+lemma "ListRetrieveSet \<Zcomp> SetRetrieveList = \<questiondown>CSystem?"
+  apply (simp add: ListRetrieveSet_def SetRetrieveList_def ASystem_inv_def assigns_seq kcomp_assoc assigns_assume assigns_seq_comp usubst usubst_eval)
 
 lemma "p \<in> Staff \<Longrightarrow> (ListRetrieveSet \<Zcomp> AEnterBuilding p) \<sqsubseteq> (CEnterBuilding p \<Zcomp> ListRetrieveSet)"
   unfolding ListRetrieveSet_def AEnterBuilding_def CEnterBuilding_def

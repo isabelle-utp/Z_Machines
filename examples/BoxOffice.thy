@@ -40,6 +40,6 @@ def_consts
   SEAT = "set [0,1,2,3]"
   CUSTOMER = "set [STR ''Simon'', STR ''Jim'', STR ''Christian'']"
 
-simulate BoxOfficeProc
+animate BoxOfficeProc
 
 end

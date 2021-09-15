@@ -40,6 +40,6 @@ zmachine ResourceManagerProc =
 
 def_consts RES = "set (map integer_of_int [0..5])"
 
-simulate ResourceManagerProc
+animate ResourceManagerProc
 
 end

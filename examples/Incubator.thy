@@ -38,7 +38,7 @@ lemma Decrement_correct: "\<^bold>{IncubatorMonitor\<^bold>} Decrement() \<^bold
 zoperation GetTemp =
   over IncubatorMonitor
   params currentTemp \<in> TEMP
-  post "temp = currentTemp"
+  where "temp = currentTemp"
 
 lemma GetTemp_correct: "\<^bold>{IncubatorMonitor\<^bold>} GetTemp v \<^bold>{IncubatorMonitor\<^bold>}"
   unfolding GetTemp_def IncubatorMonitor_inv_def by hoare_wlp
@@ -47,7 +47,7 @@ zmachine Incubator =
   init "[temp \<leadsto> 20]"
   operations Increment Decrement GetTemp
 
-simulate Incubator
+animate Incubator
 
 end
   

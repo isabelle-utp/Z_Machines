@@ -19,8 +19,9 @@ zoperation Input =
 zoperation Output =
   over Buffer_state
   params v \<in> VAL
-  pre "length buf > 0 \<and> v = hd buf"
+  pre "length buf > 0"
   update "[buf \<leadsto> tl buf]"
+  where "v = hd buf"
 
 zoperation State =
   over Buffer_state
@@ -32,6 +33,6 @@ zmachine Buffer =
 
 def_consts VAL = "{0,1,2,3}"
 
-simulate Buffer
+animate Buffer
 
 end
