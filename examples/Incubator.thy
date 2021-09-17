@@ -4,8 +4,8 @@ theory Incubator
   imports "Z_Machines.Z_Machine"
 begin
 
-consts MAX_TEMP :: int
-consts MIN_TEMP :: int
+consts MAX_TEMP :: \<int>
+consts MIN_TEMP :: \<int>
 
 definition "TEMP = {MIN_TEMP..MAX_TEMP}"
 
@@ -14,7 +14,7 @@ def_consts
   MIN_TEMP = 15
 
 schema IncubatorMonitor = 
-  temp :: int
+  temp :: \<int>
   where "MIN_TEMP \<le> temp" "temp \<le> MAX_TEMP"
 
 record_default IncubatorMonitor
@@ -22,7 +22,7 @@ record_default IncubatorMonitor
 zoperation Increment =
   over IncubatorMonitor
   pre "temp < MAX_TEMP"
-  update "[temp \<leadsto> temp + 1]"
+  update "[temp\<Zprime> = temp + 1]"
 
 lemma Increment_correct: "\<^bold>{IncubatorMonitor\<^bold>} Increment() \<^bold>{IncubatorMonitor\<^bold>}"
   unfolding Increment_def IncubatorMonitor_inv_def by hoare_wlp
@@ -30,7 +30,7 @@ lemma Increment_correct: "\<^bold>{IncubatorMonitor\<^bold>} Increment() \<^bold
 zoperation Decrement =
   over IncubatorMonitor
   pre "temp > MIN_TEMP" \<comment> \<open> Change to @{term "(temp \<ge> MIN_TEMP)\<^sub>e"} to break the invariant \<close>
-  update "[temp \<leadsto> temp - 1]"
+  update "[temp\<Zprime> = temp - 1]"
 
 lemma Decrement_correct: "\<^bold>{IncubatorMonitor\<^bold>} Decrement() \<^bold>{IncubatorMonitor\<^bold>}"
   unfolding Decrement_def IncubatorMonitor_inv_def by hoare_wlp
