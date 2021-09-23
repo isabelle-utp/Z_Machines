@@ -47,7 +47,10 @@ Outer_Syntax.command @{command_keyword zoperation} "define a Z operation"
     (Z_Machine.parse_operation >> (Toplevel.local_theory NONE NONE o Z_Machine.mk_zop));
 \<close>
 
-code_datatype pfun_of_alist pfun_of_map pfun_of_pinj
+code_datatype pfun_of_alist pfun_of_map pfun_of_pinj pfun_entries
+
+hide_const (open) Map.dom
+hide_const (open) Map.ran
 
 lit_vars
 
