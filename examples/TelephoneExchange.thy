@@ -7,8 +7,6 @@ type_synonym subs = "digit list"
 
 definition Digit :: "\<bbbP> digit" where "Digit = integer_of_int ` {0..9}"
 
-term integer_of_int
-
 consts 
   Subs :: "\<bbbP> (digit list)" 
 
@@ -36,7 +34,7 @@ definition num :: "subrec \<Zpfun> subs" where [simp]: "num = (\<lambda> x \<bul
 
 no_syntax
   "_kleisli_comp" :: "logic \<Rightarrow> logic \<Rightarrow> logic" (infixl "\<Zcomp>" 54)
-          
+
 schema Exchange =
   Free :: "\<bbbP> subs"
   Unavailable :: "\<bbbP> subs"
@@ -47,6 +45,7 @@ where
   "[Free, Unavailable, dom cal \<union> dom connected] partitions Subs"
   "Callers = dom ((cal \<Zcomp> st) \<Zrres> Connected)"
   "connected = Callers \<Zdres> (cal \<Zcomp> num)"
+  "functional cal"
 
 record_default Exchange
 
@@ -61,10 +60,14 @@ zoperation LiftFree =
 declare list_partitions_def [simp]
 
 lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange\<^bold>}LiftFree s\<^bold>{Exchange\<^bold>}"
-  unfolding LiftFree_def Exchange_inv_def
+  unfolding LiftFree_def Exchange_inv_def Connected_def
   apply (hoare_wlp_auto)
-   apply (auto simp add: Connected_def comp_pfun_graph pfun_graph_domres[THEN sym])
   apply (simp add: Domain_iff disjoint_iff rel_ranres_def)
+   apply (simp_all add: Domain_iff disjoint_iff rel_ranres_def)
+  apply (rule compatible_relI)
+  apply (simp add: pfun_graph_domres[THEN sym])
+  apply (subgoal_tac "s \<notin> dom cal")
+  apply (auto)
   done
 
 zoperation LiftSuspended =
@@ -75,7 +78,8 @@ zoperation LiftSuspended =
 zoperation Answer =
   params s \<in> Subs
   pre "(s, ringing) \<in> connected\<^sup>\<sim> \<Zcomp> cal \<Zcomp> st"
-  update "[Free\<Zprime> = Free - {s}, cal\<Zprime> = cal \<oplus> {(connected\<^sup>\<sim>) s \<mapsto> (speech, s)}]"
+  update "[ Free\<Zprime> = Free - {s}
+          , cal\<Zprime> = cal \<oplus> {(connected\<^sup>\<sim>) s \<mapsto> (speech, s)}]"
 
 definition "nextstate n = 
   (if n \<in> Subs then connecting
@@ -96,7 +100,8 @@ zoperation ClearLine =
   params s \<in> Subs
   pre "s \<in> dom cal \<and> (cal \<Zcomp> st) s \<in> {ringing , suspended}"
   update "[ Free\<Zprime> = Free \<union> {s, connected s}, cal\<Zprime> = {s} \<Zndres> cal
-          , Callers\<Zprime> = Callers - {s, connected s}, connected\<Zprime> = {s} \<Zndres> connected]"
+          , Callers\<Zprime> = Callers - {s, connected s}
+          , connected\<Zprime> = {s} \<Zndres> connected]"
 
 zoperation ClearConnect =
   params s \<in> Subs
@@ -123,7 +128,7 @@ zoperation MakeUnavail =
 
 zoperation Connect2Ringing =
   params s \<in> Subs
-  pre "s \<in> dom cal \<and> (cal \<Zcomp> st) s = connecting \<and> s \<notin> dom connected \<and> (cal \<Zcomp> num) s \<in> Free"
+  pre "s \<in> dom cal \<and> (cal \<Zcomp> st) s = connecting \<and> s \<notin> dom connected \<and> (cal \<Zcomp> num) s \<in> Free \<and> (cal \<Zcomp> num) s \<notin> ran connected"
   update "[ Free\<Zprime> = Free - {s}
           , cal\<Zprime> = cal \<oplus> {s \<mapsto> (ringing, (cal \<Zcomp> num) s)}
           , Callers\<Zprime> = Callers \<union> {s}
