@@ -1,5 +1,5 @@
 theory TelephoneExchange_locales
-  imports "Z_Machines.Z_Machine" 
+  imports "Z_Machines.Z_Machine"
 begin unbundle Z_Syntax
 
 term pdom
@@ -31,64 +31,42 @@ definition SubRec :: "Status \<leftrightarrow> digit list" where
                  \<and> (s = unobtainable \<longleftrightarrow> n \<notin> Valid)
                  \<and> (s \<in> Established \<longleftrightarrow> n \<in> Subs)}"
 
-definition st :: "subrec \<Zpfun> Status" where "st = (\<lambda> x \<bullet> first x)"
-definition num :: "subrec \<Zpfun> subs" where "num = (\<lambda> x \<bullet> second x)"
+definition st :: "subrec \<Zpfun> Status" where [expr_defs]: "st = (\<lambda> x \<bullet> first x)"
+definition num :: "subrec \<Zpfun> subs" where [expr_defs]: "num = (\<lambda> x \<bullet> second x)"
 
 no_syntax
   "_kleisli_comp" :: "logic \<Rightarrow> logic \<Rightarrow> logic" (infixl "\<Zcomp>" 54)
 
-locale Exchange_locale =
-  fixes
-  Free :: "\<bbbP> subs" and
-  Unavailable :: "\<bbbP> subs" and
-  Callers :: "\<bbbP> subs" and
-  cal :: "subs \<Zpfun> subrec" and
-  connected :: "subs \<Zpinj> subs"
-assumes   
-  inv1: "[Free, Unavailable, dom cal \<union> dom [connected]\<^sub>\<Zpinj>] partitions Subs" and
-  inv2: "dom ((cal \<Zcomp> st) \<Zrres> Connected) = Callers" and
-  inv3: "Callers \<Zdres> (cal \<Zcomp> num) = connected" and
-  inv4: "dom [connected]\<^sub>\<Zpinj> \<inter> ran [connected]\<^sub>\<Zpinj> = {}"
-begin
-
-lemmas invs = inv1 inv2 inv3 inv4
-
-lemma dom_connected_subset_cal: "dom [connected]\<^sub>\<Zpinj> \<subseteq> dom cal"
-  using invs by (auto, metis pdom_comp pdom_pranres subsetD)
-
-lemma dom_connected_Callers: "dom [connected]\<^sub>\<Zpinj> = Callers"
-  using invs
-  apply (auto simp add: num_def st_def)
-  apply (metis (no_types, lifting) insert_subset pdom_comp pdom_pranres pdom_upd pfun_upd_ext)
-  apply (metis mem_Collect_eq pdom_comp ppreimageE)
-  apply (metis fst_conv mem_Collect_eq pabs_comp pabs_eta pdom_pabs ppreimageI pran_res_UNIV)
-  done
-
-lemma dom_suspended_connected: "dom ((cal \<Zcomp> st) \<Zrres> {suspended}) \<subseteq> dom [connected]\<^sub>\<Zpinj>"
-  by (metis Connected_def Domain_mono dom_connected_Callers insert_subset inv2 rel_ranres_le subset_insertI)
-
-end
-
-print_theorems
-
-
-term Exchange_locale
-
-
-schema Exchange =
+zstore Exchange =
   Free :: "\<bbbP> subs"
   Unavailable :: "\<bbbP> subs"
   Callers :: "\<bbbP> subs"
   cal :: "subs \<Zpfun> subrec"
   connected :: "subs \<Zpinj> subs"
 where
-(*  "[Free, Unavailable, dom cal \<union> dom [connected]\<^sub>\<Zpinj>] partitions Subs"
-  "dom ((cal \<Zcomp> st) \<Zrres> Connected) = Callers"
-  "Callers \<Zdres> (cal \<Zcomp> num) = connected"
-  "dom [connected]\<^sub>\<Zpinj> \<inter> ran [connected]\<^sub>\<Zpinj> = {}" \<comment> \<open> Added by SF: no self connections \<close> *)
-  "Exchange_locale Free Unavailable Callers cal connected"
+  parts: "[Free, Unavailable, dom cal \<union> dom [connected]\<^sub>\<Zpinj>] partitions Subs"
+  Callers: "dom ((cal \<Zcomp> st) \<Zrres> Connected) = Callers"
+  connected: "Callers \<Zdres> (cal \<Zcomp> num) = connected"
+  nself: "dom [connected]\<^sub>\<Zpinj> \<inter> ran [connected]\<^sub>\<Zpinj> = {}" \<comment> \<open> Added by SF: no self connections \<close>
 
-record_default Exchange
+context Exchange
+begin
+
+lemma dom_connected_Callers: "dom [connected]\<^sub>\<Zpinj> = Callers"
+  using invariants
+  apply (auto simp add: num_def st_def)
+  apply (metis (no_types, lifting) insert_subset pdom_comp pdom_pranres pdom_upd pfun_upd_ext)
+  apply (metis mem_Collect_eq pdom_comp ppreimageE)
+  apply (metis fst_conv mem_Collect_eq pabs_comp pabs_eta pdom_pabs ppreimageI pran_res_UNIV)
+  done
+
+lemma dom_connected_subset_cal: "dom [connected]\<^sub>\<Zpinj> \<subseteq> dom cal"
+  by (metis Domain_rel_domres Int_absorb Int_lower2 UNIV_def connected num_def pdom_UNIV_comp pdom_pabs rel_of_pfun_comp rel_of_pfun_dom)
+
+lemma dom_suspended_connected: "dom ((cal \<Zcomp> st) \<Zrres> {suspended}) \<subseteq> dom [connected]\<^sub>\<Zpinj>"
+  by (metis Connected_def Domain_mono dom_connected_Callers insert_subset invariants(2) rel_ranres_le subset_insertI)
+
+end
 
 definition "InitExchange = [Free\<Zprime> = Subs, Unavailable\<Zprime> = {}, Callers\<Zprime> = {}, cal\<Zprime> = {\<mapsto>}, connected\<Zprime> = 0]"
 
@@ -101,30 +79,31 @@ zoperation LiftFree =
 declare list_partitions_def [simp]
 
 lemma LiftFree_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}LiftFree s\<^bold>{Exchange_inv\<^bold>}"
-  unfolding LiftFree_def proof (hoare_wlp_auto)
-  fix Free :: \<open>\<bbbP> integer list\<close> and Unavailable :: \<open>\<bbbP> integer list\<close> 
+unfolding Exchange_inv_def LiftFree_def
+proof (hoare_wlp_auto)
+  fix Free :: \<open>\<bbbP> integer list\<close> and Unavailable :: \<open>\<bbbP> integer list\<close>
     and Callers :: \<open>\<bbbP> integer list\<close> and cal :: \<open>integer list \<Zpfun> Status \<times> integer list\<close> 
     and connected :: \<open>integer list \<Zpinj> integer list\<close>
   assume 
     pres: \<open>s \<in> Subs\<close> \<open>s \<in> Free\<close> and
-    inv: \<open>Exchange_locale Free Unavailable Callers cal connected\<close>
-  then interpret P: Exchange_locale Free Unavailable Callers cal connected
+    inv: \<open>Exchange Free Unavailable Callers cal connected\<close>
+  then interpret P: Exchange Free Unavailable Callers cal connected
     by simp
     
-  show \<open>Exchange_locale (Free - {s}) Unavailable Callers (cal(s \<mapsto> (seize, []))\<^sub>p) connected\<close>
+  show \<open>Exchange (Free - {s}) Unavailable Callers (cal(s \<mapsto> (seize, []))\<^sub>p) connected\<close>
   proof
-    from pres P.invs show \<open>[Free - {s}, Unavailable, dom (cal(s \<mapsto> (seize, []))\<^sub>p) \<union> dom [connected]\<^sub>\<Zpinj>] partitions Subs\<close>
+    from pres P.invariants show \<open>[Free - {s}, Unavailable, dom (cal(s \<mapsto> (seize, []))\<^sub>p) \<union> dom [connected]\<^sub>\<Zpinj>] partitions Subs\<close>
       by auto
   next    
-    from pres P.invs show \<open>dom (([cal(s \<mapsto> (seize, []))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>) \<Zrres> Connected) = Callers\<close>
+    from pres P.invariants show \<open>dom (([cal(s \<mapsto> (seize, []))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>) \<Zrres> Connected) = Callers\<close>
       by (auto simp add: st_def Connected_def simp add: disjoint_iff)
   next
-    from pres P.invs show \<open>Callers \<Zdres> ([cal(s \<mapsto> (seize, []))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [[connected]\<^sub>\<Zpinj>]\<^sub>\<Zpfun>\<close> 
+    from pres P.invariants show \<open>Callers \<Zdres> ([cal(s \<mapsto> (seize, []))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [[connected]\<^sub>\<Zpinj>]\<^sub>\<Zpfun>\<close> 
       by (auto)
          (metis Un_iff disjoint_iff pdom_pranres pdom_res_upd_out pranres_pdom subsetD)
   next
     show \<open>dom [connected]\<^sub>\<Zpinj> \<inter> ran [connected]\<^sub>\<Zpinj> = {}\<close>
-      by (simp add: P.inv4)
+      by (simp add: P.nself)
   qed
 qed
 
@@ -164,17 +143,17 @@ translations
   "_preimage_syn f A" == "CONST dom (CONST ran_res f A)"
 
 
-lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange\<^bold>}LiftSuspended s\<^bold>{Exchange\<^bold>}"
+lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}LiftSuspended s\<^bold>{Exchange_inv\<^bold>}"
 unfolding LiftSuspended_def proof (hoare_wlp_auto)
   fix Free Unavailable Callers cal connected
-  assume pres: "s \<in> Subs" "st(cal([pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p)\<^sub>p)\<^sub>p = suspended" "s \<in> ran [connected]\<^sub>\<Zpinj>" "[pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p \<in> dom cal"
-    and inv: "Exchange_locale Free Unavailable Callers cal connected"
+  assume pres: "s \<in> Subs" "fst (cal([pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p)\<^sub>p) = suspended" "s \<in> ran [connected]\<^sub>\<Zpinj>" "[pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p \<in> dom cal"
+    and inv: "Exchange Free Unavailable Callers cal connected"
 
-  then interpret P: Exchange_locale Free Unavailable Callers cal connected
+  then interpret P: Exchange Free Unavailable Callers cal connected
     by simp
 
-  show "Exchange_locale Free Unavailable Callers (cal([pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p \<mapsto> (speech, s))\<^sub>p) connected"
-    using pres P.invs apply (unfold_locales)
+  show "Exchange Free Unavailable Callers (cal([pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p \<mapsto> (speech, s))\<^sub>p) connected"
+    using pres P.invariants apply (unfold_locales)
        apply (auto simp add: st_def num_def pfun_eq_iff pinv_f_f_apply)
       apply (metis P.dom_connected_Callers fst_conv mem_Collect_eq ppreimageI snd_conv)
     done
@@ -186,9 +165,30 @@ zoperation Answer =
   update "[ Free\<Zprime> = Free - {s}
           , cal\<Zprime> = cal \<oplus> {(connected\<^sup>\<sim>) s \<mapsto> (speech, s)}]"
 
-lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange\<^bold>}Answer s\<^bold>{Exchange\<^bold>}"
-  unfolding Answer_def Exchange_inv_def
-  apply (hoare_wlp_auto)
+lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}Answer s\<^bold>{Exchange_inv\<^bold>}"
+  unfolding Answer_def Exchange_inv_def 
+proof (hoare_wlp_auto)
+  fix Free :: \<open>\<bbbP> integer list\<close> and Unavailable :: \<open>\<bbbP> integer list\<close> and Callers :: \<open>\<bbbP> integer list\<close> and cal :: \<open>integer list \<Zpfun>
+                        Status \<times> integer list\<close> and connected :: \<open>integer list \<Zpinj> integer list\<close>
+  assume 
+    pres: \<open>s \<in> Subs\<close> \<open>fst (cal([pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p)\<^sub>p) = ringing\<close> \<open>s \<in> ran [connected]\<^sub>\<Zpinj>\<close> \<open>[pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p \<in> dom cal\<close>
+    and inv: \<open>Exchange Free Unavailable Callers cal connected\<close>
+    
+  then interpret P: Exchange Free Unavailable Callers cal connected
+    by simp
+
+  show \<open>Exchange (Free - {s}) Unavailable Callers (cal([pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p \<mapsto> (speech, s))\<^sub>p) connected\<close>
+  proof
+    from pres P.invariants show \<open>[Free - {s}, Unavailable, dom (cal([pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p \<mapsto> (speech, s))\<^sub>p) \<union> dom [connected]\<^sub>\<Zpinj>] partitions Subs\<close>
+      sorry
+  next
+    show \<open>[cal([pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p \<mapsto> (speech, s))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>\<^sup>\<leftarrow> Connected = Callers\<close> sorry
+  next
+    show \<open>Callers \<Zdres> ([cal([pinv connected]\<^sub>\<Zpinj>(s)\<^sub>p \<mapsto> (speech, s))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [[connected]\<^sub>\<Zpinj>]\<^sub>\<Zpfun>\<close> sorry
+  next
+    show \<open>Relation_Toolkit.dom [connected]\<^sub>\<Zpinj> \<inter> Relation_Toolkit.ran [connected]\<^sub>\<Zpinj> = {}\<close> sorry
+  qed
+qed
   oops
 
 definition "nextstate n = 
