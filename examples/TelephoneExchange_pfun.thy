@@ -40,11 +40,12 @@ schema Exchange =
   Unavailable :: "\<bbbP> subs"
   Callers :: "\<bbbP> subs"
   cal :: "subs \<Zpfun> subrec"
-  connected :: "subs \<Zpfun> subs" (* "subs \<Zpinj> subs" *)
+  connected :: "subs \<Zpinj> subs"
 where
-  "[Free, Unavailable, dom cal \<union> dom connected] partitions Subs"
-  "dom ((cal \<Zcomp> st) \<Zrres> Connected) = Callers "
+  "[Free, Unavailable, dom cal \<union> dom [connected]\<^sub>\<Zpinj>] partitions Subs"
+  "dom ((cal \<Zcomp> st) \<Zrres> Connected) = Callers"
   "Callers \<Zdres> (cal \<Zcomp> num) = connected"
+  "dom [connected]\<^sub>\<Zpinj> \<inter> ran [connected]\<^sub>\<Zpinj> = {}" \<comment> \<open> Added by SF: no self connections \<close>
 
 record_default Exchange
 
@@ -58,29 +59,75 @@ zoperation LiftFree =
 
 declare list_partitions_def [simp]
 
-lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange\<^bold>}LiftFree s\<^bold>{Exchange\<^bold>}"
-  unfolding LiftFree_def Exchange_inv_def Connected_def st_def num_def
+
+lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}LiftFree s\<^bold>{Exchange_inv\<^bold>}"
+  unfolding  LiftFree_def
   apply (hoare_wlp_auto)
-    apply (simp_all add: disjoint_iff pabs_comp)
-  oops
+    apply (auto simp add: st_def num_def Connected_def Un_absorb2 disjoint_iff)
+  apply (metis (no_types, lifting) pdom_pranres pdom_res_upd_out pranres_pdom subsetD)
+  done
 
 zoperation LiftSuspended =
   params s \<in> Subs
   pre "(s, suspended) \<in> connected\<^sup>\<sim> \<Zcomp> cal \<Zcomp> st" 
   update "[cal\<Zprime> = cal \<oplus> {(connected\<^sup>\<sim>) s \<mapsto> (speech, s)}]"
 
-lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange\<^bold>}LiftSuspended s\<^bold>{Exchange\<^bold>}"
+lemma "`Exchange \<longrightarrow> dom [connected]\<^sub>\<Zpinj> \<subseteq> dom cal`"
+  apply (expr_auto)
+  by (metis pdom_comp pdom_pranres subsetD)
+
+lemma "`Exchange \<longrightarrow> dom [connected]\<^sub>\<Zpinj> = Callers`"
+  apply (expr_auto)
+  apply (simp_all add: num_def st_def)
+  apply (metis (no_types, lifting) insert_subset pdom_comp pdom_pranres pdom_upd pfun_upd_ext)
+  apply (smt (z3) Int_UNIV UNIV_def mem_Collect_eq pdom_UNIV_comp pdom_pabs ppreimageE)
+  apply (smt (z3) UNIV_def fst_conv inf_eq_top_iff mem_Collect_eq pdom_UNIV_comp pdom_pabs ppreimageI)
+  done
+
+lemma [simp]: "speech \<in> Connected"
+  by (simp add: Connected_def)
+
+text \<open> I think we need an invariant that those who have suspended a call did not initiate that call. \<close>
+
+lemma "`Exchange \<longrightarrow> dom [connected]\<^sub>\<Zpinj> \<inter> ran [connected]\<^sub>\<Zpinj> = {}`"
+  apply (expr_auto)
+  oops
+
+lemma "st \<Zrres> {suspended} \<le> st \<Zrres> Connected"
+  
+  oops
+
+lemma dom_num [simp]: "dom num = UNIV"
+  by (metis Int_absorb UNIV_def num_def pdom_pabs)
+
+lemma dom_st [simp]: "dom st = UNIV"
+  by (simp add: st_def)
+
+lemma suspended_Connected [simp]: "suspended \<in> Connected"
+  by (simp add: Connected_def)
+
+lemma suspended_le_Connected [simp]: "{suspended} \<subseteq> Connected"
+  by (simp add: Connected_def)
+
+
+syntax
+  "_image_syn" :: "logic \<Rightarrow> logic \<Rightarrow> logic" ("(_\<^sup>\<rightarrow> _)" 999)
+  "_preimage_syn" :: "logic \<Rightarrow> logic \<Rightarrow> logic" ("(_\<^sup>\<leftarrow> _)" 999)
+
+translations
+  "_image_syn f A" == "CONST ran (CONST dom_res A f)"
+  "_preimage_syn f A" == "CONST dom (CONST ran_res f A)"
+
+lemma "`Exchange \<longrightarrow> dom ((cal \<Zcomp> st) \<Zrres> {suspended}) \<subseteq> dom [connected]\<^sub>\<Zpinj>`"
+  apply expr_auto
+  apply (metis UNIV_I dom_num dom_st pdom_UNIV_comp ppreimageI suspended_Connected)
+  done
+
+lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange \<and> dom [connected]\<^sub>\<Zpinj> \<subseteq> dom cal \<and> dom [connected]\<^sub>\<Zpinj> = Callers\<^bold>}LiftSuspended s\<^bold>{Exchange\<^bold>}"
   unfolding LiftSuspended_def Exchange_inv_def
   apply (hoare_wlp_auto)
-       apply (simp add: st_def Un_absorb2)
-  apply (simp add: num_def pabs_comp)
-       apply (simp_all add: disjoint_iff pabs_comp Int_commute)
-(*
-       apply (metis (no_types, lifting) Int_Collect pabs_eta pabs_rres pdom_pabs)
-  apply (metis (no_types, lifting) Int_Collect pabs_eta pabs_rres pdom_pabs)
-  apply (metis (no_types, lifting) Int_Collect UnI2 pabs_eta pabs_rres pdom_pabs sup_commute)
-*)
-  oops
+  apply (auto simp add: st_def num_def ppreimageI pfun_eq_iff pinv_f_f_apply)
+  done
 
 zoperation Answer =
   params s \<in> Subs
