@@ -1,6 +1,8 @@
 theory TelephoneExchange_locales
-  imports "Z_Machines.Z_Machine"
+  imports "Z_Machines.Z_Machine" 
 begin unbundle Z_Syntax
+
+term pdom
 
 type_synonym digit = integer
 type_synonym subs = "digit list"
@@ -51,8 +53,20 @@ begin
 
 lemmas invs = inv1 inv2 inv3 inv4
 
-lemma "dom [connected]\<^sub>\<Zpinj> \<subseteq> dom cal"
-  oops
+lemma dom_connected_subset_cal: "dom [connected]\<^sub>\<Zpinj> \<subseteq> dom cal"
+  using invs by (auto, metis pdom_comp pdom_pranres subsetD)
+
+lemma dom_connected_Callers: "dom [connected]\<^sub>\<Zpinj> = Callers"
+  using invs
+  apply (auto simp add: num_def st_def)
+  apply (metis (no_types, lifting) insert_subset pdom_comp pdom_pranres pdom_upd pfun_upd_ext)
+  apply (metis mem_Collect_eq pdom_comp ppreimageE)
+  apply (metis fst_conv mem_Collect_eq pabs_comp pabs_eta pdom_pabs ppreimageI pran_res_UNIV)
+  done
+
+lemma dom_suspended_connected: "dom ((cal \<Zcomp> st) \<Zrres> {suspended}) \<subseteq> dom [connected]\<^sub>\<Zpinj>"
+  by (metis Connected_def Domain_mono dom_connected_Callers insert_subset inv2 rel_ranres_le subset_insertI)
+
 end
 
 print_theorems
@@ -86,44 +100,38 @@ zoperation LiftFree =
 
 declare list_partitions_def [simp]
 
-find_theorems Exchange_locale
-
-lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}LiftFree s\<^bold>{Exchange_inv\<^bold>}"
-unfolding LiftFree_def proof (hoare_wlp_auto)
-  fix Free Unavailable Callers cal connected
-  assume pres: "s \<in> Subs" "s \<in> Free" and inv: "Exchange_locale Free Unavailable Callers cal connected" 
+lemma LiftFree_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}LiftFree s\<^bold>{Exchange_inv\<^bold>}"
+  unfolding LiftFree_def proof (hoare_wlp_auto)
+  fix Free :: \<open>\<bbbP> integer list\<close> and Unavailable :: \<open>\<bbbP> integer list\<close> 
+    and Callers :: \<open>\<bbbP> integer list\<close> and cal :: \<open>integer list \<Zpfun> Status \<times> integer list\<close> 
+    and connected :: \<open>integer list \<Zpinj> integer list\<close>
+  assume 
+    pres: \<open>s \<in> Subs\<close> \<open>s \<in> Free\<close> and
+    inv: \<open>Exchange_locale Free Unavailable Callers cal connected\<close>
   then interpret P: Exchange_locale Free Unavailable Callers cal connected
     by simp
-  from pres P.invs show "Exchange_locale (Free - {s}) Unavailable Callers (cal(s \<mapsto> (seize, []))\<^sub>p) connected"
-    apply (unfold_locales)
-    apply (auto simp add: st_def num_def Un_absorb2 disjoint_iff Connected_def)
-    apply (metis (no_types, lifting) pdom_pranres pdom_res_comp pdom_res_upd_out pranres_pdom subsetD)
-    done
+    
+  show \<open>Exchange_locale (Free - {s}) Unavailable Callers (cal(s \<mapsto> (seize, []))\<^sub>p) connected\<close>
+  proof
+    from pres P.invs show \<open>[Free - {s}, Unavailable, dom (cal(s \<mapsto> (seize, []))\<^sub>p) \<union> dom [connected]\<^sub>\<Zpinj>] partitions Subs\<close>
+      by auto
+  next    
+    from pres P.invs show \<open>dom (([cal(s \<mapsto> (seize, []))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>) \<Zrres> Connected) = Callers\<close>
+      by (auto simp add: st_def Connected_def simp add: disjoint_iff)
+  next
+    from pres P.invs show \<open>Callers \<Zdres> ([cal(s \<mapsto> (seize, []))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [[connected]\<^sub>\<Zpinj>]\<^sub>\<Zpfun>\<close> 
+      by (auto)
+         (metis Un_iff disjoint_iff pdom_pranres pdom_res_upd_out pranres_pdom subsetD)
+  next
+    show \<open>dom [connected]\<^sub>\<Zpinj> \<inter> ran [connected]\<^sub>\<Zpinj> = {}\<close>
+      by (simp add: P.inv4)
+  qed
 qed
 
 zoperation LiftSuspended =
   params s \<in> Subs
   pre "(s, suspended) \<in> connected\<^sup>\<sim> \<Zcomp> cal \<Zcomp> st" 
   update "[cal\<Zprime> = cal \<oplus> {(connected\<^sup>\<sim>) s \<mapsto> (speech, s)}]"
-
-context Exchange_locale
-begin
-
-lemma dom_connected_subset_cal: "dom [connected]\<^sub>\<Zpinj> \<subseteq> dom cal"
-  using invs by (auto, metis pdom_comp pdom_pranres subsetD)
-
-lemma dom_connected_Callers: "dom [connected]\<^sub>\<Zpinj> = Callers"
-  using invs
-  apply (auto simp add: num_def st_def)
-  apply (metis (no_types, lifting) insert_subset pdom_comp pdom_pranres pdom_upd pfun_upd_ext)
-  apply (metis mem_Collect_eq pdom_comp ppreimageE)
-  apply (metis fst_conv mem_Collect_eq pabs_comp pabs_eta pdom_pabs ppreimageI pran_res_UNIV)
-  done
-
-lemma dom_suspended_connected: "dom ((cal \<Zcomp> st) \<Zrres> {suspended}) \<subseteq> dom [connected]\<^sub>\<Zpinj>"
-  by (metis Connected_def Domain_mono dom_connected_Callers insert_subset inv2 rel_ranres_le subset_insertI)
-
-end
 
 lemma [simp]: "speech \<in> Connected"
   by (simp add: Connected_def)
