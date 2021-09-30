@@ -174,14 +174,6 @@ translations
   "_image_syn f A" == "CONST ran (CONST dom_res A f)"
   "_preimage_syn f A" == "CONST dom (CONST ran_res f A)"
 
-setup Explorer_Lib.switch_to_quotes
-
-lemma [simp]: "pfun_inj f \<Longrightarrow> [f]\<^sub>\<Zpfun>\<^sup>\<sim> = [pfun_inv f]\<^sub>\<Zpfun>"
-  by (simp add: pfun_graph_pfun_inv rel_of_pfun_def)
-
-lemma f_pfun_inv_f_apply: "\<lbrakk> pfun_inj f; x \<in> pdom f \<rbrakk> \<Longrightarrow> pfun_inv f(f(x)\<^sub>p)\<^sub>p = x"
-  by (metis pdom_pfun_inv pfun_inj_inv pfun_inj_inv_inv pfun_inv_f_f_apply)
-
 lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}LiftSuspended s\<^bold>{Exchange_inv\<^bold>}"
   unfolding LiftSuspended_def proof (hoare_wlp_auto)
   fix Free :: "\<bbbP> integer list" and Unavailable :: "\<bbbP> integer list" and Callers :: "\<bbbP> integer list" and cal :: "integer list \<Zpfun>
@@ -194,13 +186,13 @@ lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}LiftSuspende
   show "Exchange Free Unavailable Callers (cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p) connected"
   proof
     show "[Free, Unavailable, dom (cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p), ran connected] partitions Subs" 
-      using pres P.parts P.connected_inj by (auto simp add: num_def st_def f_pfun_inv_f_apply)
+      using pres P.parts P.connected_inj by (auto simp add: num_def st_def pfun_inv_f_f_apply)
   next
     show "[cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>\<^sup>\<leftarrow> Connected = Callers" 
-      using pres P.parts P.connected_inj P.Callers by (auto simp add: num_def st_def f_pfun_inv_f_apply Connected_def)
+      using pres P.parts P.connected_inj P.Callers by (auto simp add: num_def st_def pfun_inv_f_f_apply Connected_def)
   next
     show "Callers \<Zdres> ([cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [connected]\<^sub>\<Zpfun>"
-      using pres P.connected P.connected_inj by (auto simp add: f_pfun_inv_f_apply pfun_eq_iff num_def)
+      using pres P.connected P.connected_inj by (auto simp add: pfun_inv_f_f_apply pfun_eq_iff num_def)
   next
     show "pfun_inj connected"
       by (simp add: P.connected_inj)
@@ -227,10 +219,10 @@ proof (hoare_wlp_auto)
   show "Exchange (Free - {connected(y)\<^sub>p}) Unavailable Callers (cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p) connected"
   proof
     from pres P.parts P.connected_inj show "[Free - {connected(y)\<^sub>p}, Unavailable, dom (cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p), ran connected] partitions Subs"
-      by (auto simp add: f_pfun_inv_f_apply, metis imageI pran_pdom)
+      by (auto simp add: f_pfun_inv_f_apply pfun_inv_f_f_apply)
   next
     from pres P.connected_inj P.dom_connected_subset_cal P.dom_connected_Callers P.Callers show "[cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>\<^sup>\<leftarrow> Connected = Callers"
-      by (simp add: f_pfun_inv_f_apply P.connected_inj st_def insert_absorb)
+      by (simp add: pfun_inv_f_f_apply P.connected_inj st_def insert_absorb)
   next
     from pres P.connected_inj P.dom_connected_subset_cal P.dom_connected_Callers P.connected show "Callers \<Zdres> ([cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [connected]\<^sub>\<Zpfun>"
       by (auto simp add: f_pfun_inv_f_apply num_def pfun_eq_iff)
@@ -329,9 +321,6 @@ zoperation ClearLine =
           , Callers\<Zprime> = Callers - {s, connected s}
           , connected\<Zprime> = {s} \<Zndres> connected]"
 
-lemma pfun_app_in_ran [simp]: "x \<in> dom f \<Longrightarrow> f(x)\<^sub>p \<in> ran f"
-  by (simp add: pran_pdom)
-
 lemma ClearLine_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}ClearLine s\<^bold>{Exchange_inv\<^bold>}"
   unfolding ClearLine_def
 proof (hoare_wlp_auto)
@@ -362,7 +351,7 @@ proof (hoare_wlp_auto)
       using P.Free apply blast
       using P.Free apply force
       apply (metis P.nself disjoint_iff pdom_pfun_inv pfun_inv_dres ppreimageE)
-      apply (metis f_pfun_inv_f_apply pdom_pfun_inv pfun_inv_dres ppreimageD subsetI subset_Compl_singleton)
+      apply (metis pfun_inv_f_f_apply pdom_pfun_inv pfun_inv_dres ppreimageD subsetI subset_Compl_singleton)
       apply (metis DiffD2 P.Free UnI2 pdom_pfun_inv pfun_inv_dres ppreimageE)
       using P.Unavailable apply force
       apply (metis DiffD2 P.Unavailable UnI2 pdom_pfun_inv pfun_inv_dres ppreimageE)
@@ -410,7 +399,7 @@ next
       using P.Free apply blast
       using P.Free apply force
       apply (metis P.nself disjoint_iff pdom_pfun_inv pfun_inv_dres ppreimageE)
-      apply (metis f_pfun_inv_f_apply pdom_pfun_inv pfun_inv_dres ppreimageD subsetI subset_Compl_singleton)
+      apply (metis pfun_inv_f_f_apply pdom_pfun_inv pfun_inv_dres ppreimageD subsetI subset_Compl_singleton)
       apply (metis DiffD2 P.Free UnI2 pdom_pfun_inv pfun_inv_dres ppreimageE)
       using P.Unavailable apply force
       apply (metis DiffD2 P.Unavailable UnI2 pdom_pfun_inv pfun_inv_dres ppreimageE)
@@ -474,12 +463,6 @@ zoperation Connect2Ringing =
           , cal\<Zprime> = cal \<oplus> {s \<mapsto> (ringing, (cal \<Zcomp> num) s)}
           , Callers\<Zprime> = Callers \<union> {s}
           , connected\<Zprime> = connected \<oplus> {s \<mapsto> (cal \<Zcomp> num) s}]"
-
-lemma mem_pimage_iff: "x \<in> pran (A \<lhd>\<^sub>p f) \<longleftrightarrow> (\<exists> y \<in> A \<inter> pdom(f). f(y)\<^sub>p = x)"
-  by (auto simp add: pran_pdom)
-
-lemma ppreimage_inter [simp]: "pdom (f \<rhd>\<^sub>p (A \<inter> B)) = pdom (f \<rhd>\<^sub>p A) \<inter> pdom (f \<rhd>\<^sub>p B)"
-  by fastforce
 
 lemma Connect2Ringing_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}Connect2Ringing s\<^bold>{Exchange_inv\<^bold>}"
   unfolding Connect2Ringing_def
