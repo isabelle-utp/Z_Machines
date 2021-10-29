@@ -1,5 +1,5 @@
 theory Z_Machine
-  imports Z_Operations "Z_Toolkit.Z_Toolkit" "HOL-Library.Code_Target_Numeral"
+  imports Z_Operations "Z_Toolkit.Z_Toolkit" "HOL-Library.Code_Target_Numeral" "Explorer.Explorer"
   keywords "zmachine" "zoperation" :: "thy_decl_block"
     and "over" "init" "operations" "params" "pre" "update" "\<in>"
 begin
@@ -49,8 +49,10 @@ Outer_Syntax.command @{command_keyword zoperation} "define a Z operation"
 
 code_datatype pfun_of_alist pfun_of_map pfun_of_pinj pfun_entries
 
-hide_const (open) Map.dom
-hide_const (open) Map.ran
+hide_const Map.dom
+hide_const Map.ran
+
+setup \<open> Explorer_Lib.switch_to_quotes \<close>
 
 lit_vars
 
