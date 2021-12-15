@@ -1,7 +1,7 @@
 section \<open> Dwarf Signal \<close>
 
 theory DwarfSignal
-  imports "Z_Machines.Z_Machines"
+  imports "Z_Machines.Z_Machine"
 begin                
 
 subsection \<open> State Space \<close>
@@ -47,7 +47,7 @@ zoperation SetNewProperState =
 
 zoperation TurnOff =
   over Dwarf
-  params l\<in>turn_off
+  params l\<in>turn_off 
   update "[turn_off\<Zprime> = turn_off - {l}
           ,turn_on\<Zprime> = turn_on - {l}
           ,last_state\<Zprime> = current_state
