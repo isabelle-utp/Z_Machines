@@ -31,10 +31,12 @@ fun mk_zop (Operation {name = n, state = s, params = ps, guard = g, update = upd
       val parm = dest_setT (range_type (Term.type_of (check_term ctx set)))
       val st = read_typ ctx s
       val ppat = mk_tuple (map (free o fst) pss)
+      val code_unfold = Attrib.check_src @{context} (Token.make_src ("code_unfold", Position.none) [])
+      val z_defs = Attrib.check_src @{context} (Token.make_src ("z_defs", Position.none) [])
   in snd (Local_Theory.define 
            ((Binding.name (zop_type n), NoSyn)
          , ((Binding.name (zop_type n ^ "_def")
-           , [Attrib.check_src @{context} (Token.make_src ("code_unfold", Position.none) [])])
+           , [code_unfold, z_defs])
            , check_term ctx set)) ctx) |>
      snd o Local_Theory.define 
            ((Binding.name n, NoSyn)
@@ -42,7 +44,7 @@ fun mk_zop (Operation {name = n, state = s, params = ps, guard = g, update = upd
            (* It would be better if we could mark these as "code" rather than "code_unfold" to retain
               the structure in the language target. For now, code_unfold is required to ensure that
               the semantics of enumerated inputs is correctly calculated *)
-           , [Attrib.check_src @{context} (Token.make_src ("code_unfold", Position.none) [])])
+           , [code_unfold, z_defs])
            , check_term ctx ( 
               (Const (@{const_name "mk_zop"}, (parm --> st --> dummyT) --> dummyT)
                 $ tupled_lambda ppat (SEXP $ Lift_Expr.mk_lift_expr ctx (parse_term ctx g)))

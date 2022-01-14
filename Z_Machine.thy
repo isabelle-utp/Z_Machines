@@ -9,7 +9,7 @@ text \<open> An operation is constructed from a precondition, update, and postco
   are parameterised. \<close>
 
 definition mk_zop :: "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree)" where
-"mk_zop P \<sigma> Q = (\<lambda> v. assume (P v) \<Zcomp> assert (Q v) \<Zcomp> \<langle>\<sigma> v\<rangle>\<^sub>a)"
+"mk_zop P \<sigma> Q = (\<lambda> v. assume (P v) ;; assert (Q v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a)"
 
 text \<open> An operation requires that precondition holds, and that following the update the postcondition(s)
   also hold. \<close>

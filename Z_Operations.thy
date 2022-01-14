@@ -24,4 +24,7 @@ definition operation :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarro
 definition io_operation :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('a \<Rightarrow> ('e, 'b \<times> 's) htree) \<Rightarrow> ('e, 's) htree" where
 "io_operation c d P = undefined"
 
+method z_wlp uses add = (hoare_wlp_auto add: z_defs add)
+method z_wlp_auto uses add = (hoare_wlp_auto add: z_defs z_locale_defs add)
+
 end
