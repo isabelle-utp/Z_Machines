@@ -9,12 +9,10 @@ consts
   NAME :: "name set"
   DATE :: "date set"
 
-schema BirthdayBook = 
+zstore BirthdayBook = 
   known :: "\<bbbP> name"
   birthday :: "name \<Zpfun> date"
   where "known = dom birthday"
-
-record_default BirthdayBook
 
 zoperation AddBirthday = 
   over BirthdayBook
@@ -22,11 +20,17 @@ zoperation AddBirthday =
   pre "name \<notin> known"
   update "[known \<leadsto> known \<union> {name}, birthday \<leadsto> birthday \<oplus> {name \<mapsto> date}]"
 
+lemma "H{BirthdayBook_inv} AddBirthday (n, d) {BirthdayBook_inv}"
+  by z_wlp_auto
+
 zoperation FindBirthday =
   over BirthdayBook
   params name\<in>NAME date\<in>DATE
   pre "name \<in> known"
   where "date = birthday(name)"
+
+lemma "H{BirthdayBook_inv} FindBirthday (n, d) {BirthdayBook_inv}"
+  by z_wlp_auto
 
 zoperation Remind =
   over BirthdayBook

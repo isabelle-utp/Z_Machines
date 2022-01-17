@@ -66,6 +66,7 @@ zoperation Shine =
   params l\<in>"{current_state}"
 
 definition Init :: "Dwarf subst" where
+  [z_defs]:
   "Init = 
   [ last_proper_state \<leadsto> stop
   , turn_off \<leadsto> {}
@@ -80,29 +81,47 @@ zmachine DwarfSignal =
 
 animate DwarfSignal
 
-edefinition "NeverShowAll = (Dwarf_inv \<and> current_state \<noteq> {L1, L2, L3})"
+zexpr NeverShowAll 
+  is "Dwarf_inv \<and> current_state \<noteq> {L1, L2, L3}"
 
-edefinition "MaxOneLampChange = 
-  (Dwarf_inv \<and> (\<exists> l. current_state - last_state = {l} \<or> last_state - current_state = {l} \<or> last_state = current_state))"
+zexpr MaxOneLampChange
+  is "Dwarf_inv \<and> (\<exists> l. current_state - last_state = {l} \<or> last_state - current_state = {l} \<or> last_state = current_state)"
 
-edefinition "ForbidStopToDrive =
-  (Dwarf_inv \<and> (last_proper_state = stop \<longrightarrow> desired_proper_state \<noteq> drive))"
+zexpr ForbidStopToDrive
+  is "Dwarf_inv \<and> (last_proper_state = stop \<longrightarrow> desired_proper_state \<noteq> drive)"
 
-edefinition "DarkOnlyToStop =
-  (Dwarf_inv \<and> (last_proper_state = dark \<longrightarrow> desired_proper_state = stop))"
+zexpr DarkOnlyToStop
+  is "Dwarf_inv \<and> (last_proper_state = dark \<longrightarrow> desired_proper_state = stop)"
 
-edefinition "DarkOnlyFromStop =
-  (Dwarf_inv \<and> (desired_proper_state = dark \<longrightarrow> last_proper_state = stop))"
+zexpr DarkOnlyFromStop
+  is "Dwarf_inv \<and> (desired_proper_state = dark \<longrightarrow> last_proper_state = stop)"
 
-definition "DwarfReq = 
-  (@NeverShowAll 
-  \<and> @MaxOneLampChange 
-  \<and> @ForbidStopToDrive 
-  \<and> @DarkOnlyToStop 
-  \<and> @DarkOnlyFromStop)\<^sub>e"
+zexpr DwarfReq
+  is "NeverShowAll \<and> MaxOneLampChange \<and> ForbidStopToDrive \<and> DarkOnlyToStop \<and> DarkOnlyFromStop"
 
-lemma Init_establishes_inv: "Init \<dagger> Dwarf_inv = (True)\<^sub>e"
-  by (simp add: Dwarf_inv_def Dwarf_def Init_def usubst_eval)
+lemma "Init establishes Dwarf_inv"
+  by z_wlp_auto
+
+lemma "(SetNewProperState p) preserves Dwarf_inv"
+  by z_wlp_auto
+
+lemma "(SetNewProperState p) preserves NeverShowAll"
+  by z_wlp_auto
+
+lemma "(SetNewProperState p) preserves MaxOneLampChange"
+  by z_wlp_auto
+
+lemma "(SetNewProperState p) preserves ForbidStopToDrive"
+  apply z_wlp_auto
+  quickcheck
+  oops
+
+lemma "TurnOn l preserves Dwarf_inv"
+  by z_wlp_auto
+
+lemma "TurnOff l preserves Dwarf_inv"
+  by z_wlp_auto  
+
 
 (*
 definition "CheckReq = 
