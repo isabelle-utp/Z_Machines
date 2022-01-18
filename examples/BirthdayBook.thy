@@ -21,7 +21,7 @@ zoperation AddBirthday =
   update "[known \<leadsto> known \<union> {name}, birthday \<leadsto> birthday \<oplus> {name \<mapsto> date}]"
 
 lemma "H{BirthdayBook_inv} AddBirthday (n, d) {BirthdayBook_inv}"
-  by z_wlp_auto
+  by zpog_full
 
 zoperation FindBirthday =
   over BirthdayBook
@@ -30,7 +30,7 @@ zoperation FindBirthday =
   where "date = birthday(name)"
 
 lemma "H{BirthdayBook_inv} FindBirthday (n, d) {BirthdayBook_inv}"
-  by z_wlp_auto
+  by zpog_full
 
 zoperation Remind =
   over BirthdayBook

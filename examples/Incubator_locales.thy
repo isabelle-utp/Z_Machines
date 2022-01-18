@@ -23,8 +23,7 @@ zoperation Increment =
   update "[temp\<Zprime> = temp + 1]"
 
 lemma Increment_correct: "\<^bold>{IncubatorMonitor_inv\<^bold>} Increment() \<^bold>{IncubatorMonitor_inv\<^bold>}"
-  unfolding Increment_def IncubatorMonitor_inv_def  
-proof (hoare_wlp_auto)
+proof zpog
   fix temp
   assume pres: "temp < MAX_TEMP" and inv: "IncubatorMonitor temp" 
   then interpret IncubatorMonitor temp
@@ -52,7 +51,7 @@ zoperation GetTemp =
   where "temp = currentTemp"
 
 lemma GetTemp_correct: "\<^bold>{IncubatorMonitor_inv\<^bold>} GetTemp v \<^bold>{IncubatorMonitor_inv\<^bold>}"
-  unfolding GetTemp_def IncubatorMonitor_inv_def IncubatorMonitor_def by hoare_wlp
+  by zpog_full
 
 zmachine Incubator =
   init "[temp \<leadsto> 20]"

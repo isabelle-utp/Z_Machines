@@ -2,8 +2,6 @@ theory TelephoneExchange_locales
   imports "Z_Machines.Z_Machine"
 begin unbundle Z_Syntax
 
-term pdom
-
 type_synonym digit = integer
 type_synonym subs = "digit list"
 
@@ -35,7 +33,8 @@ definition st :: "subrec \<Zpfun> Status" where [expr_defs]: "st = (\<lambda> x 
 definition num :: "subrec \<Zpfun> subs" where [expr_defs]: "num = (\<lambda> x \<bullet> second x)"
 
 no_syntax
-  "_kleisli_comp" :: "logic \<Rightarrow> logic \<Rightarrow> logic" (infixl "\<Zcomp>" 54)
+  "_kleisli_comp" :: "logic \<Rightarrow> logic \<Rightarrow> logic" (infixr "\<Zcomp>" 54)
+
 
 zstore Exchange =
   Free :: "\<bbbP> subs"
@@ -57,6 +56,17 @@ lemma domres_pabs [simp]: "A \<Zdres> pabs B P f = pabs (A \<inter> B) P f"
 
 context Exchange
 begin
+
+lemma part_props:
+  shows  
+    "Free \<inter> Unavailable = {}" and
+    "Free \<inter> dom cal = {}" and
+    "Free \<inter> ran connected = {}" and
+    "Unavailable \<inter> dom cal = {}" and
+    "Unavailable \<inter> ran connected = {}" and
+    "dom cal \<inter> ran connected = {}" and
+    "Free \<union> (Unavailable \<union> (dom cal \<union> ran connected)) = Subs"
+  using parts by auto
 
 lemma dom_connected_Callers: "dom connected = Callers"
   using invariants by (auto simp add: num_def st_def)
@@ -91,6 +101,9 @@ lemma nself: "dom connected \<inter> ran connected = {}" \<comment> \<open> Adde
 lemma ncon_call: "dom cal \<inter> ran connected = {}"
   using parts by auto
 
+lemma nself_connected [simp]: "s \<in> dom connected \<Longrightarrow> s \<noteq> connected s"
+  by (metis disjoint_iff nself pfun_app_in_ran)
+
 end
 
 lemma seize_nConnected [simp]: "seize \<notin> Connected" by (simp add: Connected_def)
@@ -108,11 +121,8 @@ zoperation LiftFree =
   update "[Free\<Zprime> = Free - {s}
           ,cal\<Zprime> = cal \<oplus> {s \<mapsto> (seize, [])}]"
 
-
-
 lemma LiftFree_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}LiftFree s\<^bold>{Exchange_inv\<^bold>}"
-unfolding Exchange_inv_def LiftFree_def
-proof (hoare_wlp_auto)
+proof zpog
   fix Free :: \<open>\<bbbP> integer list\<close> and Unavailable :: \<open>\<bbbP> integer list\<close>
     and Callers :: \<open>\<bbbP> integer list\<close> and cal :: \<open>integer list \<Zpfun> Status \<times> integer list\<close> 
     and connected :: \<open>integer list \<Zpfun> integer list\<close>
@@ -175,7 +185,7 @@ translations
   "_preimage_syn f A" == "CONST dom (CONST ran_res f A)"
 
 lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}LiftSuspended s\<^bold>{Exchange_inv\<^bold>}"
-  unfolding LiftSuspended_def proof (hoare_wlp_auto)
+proof zpog
   fix Free :: "\<bbbP> integer list" and Unavailable :: "\<bbbP> integer list" and Callers :: "\<bbbP> integer list" and cal :: "integer list \<Zpfun>
                         Status \<times> integer list" and connected :: "integer list \<Zpfun> integer list" and y :: "integer list"
   assume 
@@ -206,9 +216,8 @@ zoperation Answer =
           , cal\<Zprime> = cal \<oplus> {(connected\<^sup>\<sim>) s \<mapsto> (speech, s)}]"
 
 
-lemma Answer_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}Answer s\<^bold>{Exchange_inv\<^bold>}"
-  unfolding Answer_def Exchange_inv_def 
-proof (hoare_wlp_auto)
+lemma Answer_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}Answer s\<^bold>{Exchange_inv\<^bold>}" 
+proof zpog
   fix Free :: "\<bbbP> integer list" and Unavailable :: "\<bbbP> integer list" and Callers :: "\<bbbP> integer list" and cal :: "integer list \<Zpfun>
                         Status \<times> integer list" and connected :: "integer list \<Zpfun> integer list" and y :: "integer list"
   assume 
@@ -246,8 +255,7 @@ zoperation Dial =
   update "[cal\<Zprime> = (let newnum = (cal \<Zcomp> num) s @ [d] in cal \<oplus> {s \<mapsto> (nextstate newnum, newnum)})]"
 
 lemma Dial_correct: "\<lbrakk> s \<in> Subs; d \<in> Digit \<rbrakk> \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}Dial (s, d)\<^bold>{Exchange_inv\<^bold>}"
-  unfolding Dial_def
-proof (hoare_wlp_auto)
+proof zpog
   fix Free :: "\<bbbP> integer list" and Unavailable :: "\<bbbP> integer list" and Callers :: "\<bbbP> integer list" and cal :: "integer list \<Zpfun>
                         Status \<times> integer list" and connected :: "integer list \<Zpfun> integer list"
   assume 
@@ -308,8 +316,7 @@ zoperation ClearAttempt =
   update "[Free\<Zprime> = Free \<union> {s}, cal\<Zprime> = {s} \<Zndres> cal]"
 
 lemma ClearAttempt_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}ClearAttempt s\<^bold>{Exchange_inv\<^bold>}"
-  unfolding ClearAttempt_def Exchange_inv_def Exchange_def
-  apply (hoare_wlp_auto)
+  apply (zpog_full; auto)
   apply (metis Compl_iff empty_iff fst_conv insert_iff pdom_res_apply)
   apply (metis (no_types, lifting) Int_commute inf_bot_right mem_Collect_eq pdom_antires_insert_notin pdom_nres_disjoint pdom_res_twice ppreimageD pranres_pdom)
   done
@@ -321,9 +328,10 @@ zoperation ClearLine =
           , Callers\<Zprime> = Callers - {s, connected s}
           , connected\<Zprime> = {s} \<Zndres> connected]"
 
+thm disjE
+
 lemma ClearLine_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}ClearLine s\<^bold>{Exchange_inv\<^bold>}"
-  unfolding ClearLine_def
-proof (hoare_wlp_auto)
+proof zpog
   fix Free :: "\<bbbP> integer list" and Unavailable :: "\<bbbP> integer list" and Callers :: "\<bbbP> integer list" and cal :: "integer list \<Zpfun>
                         Status \<times> integer list" and connected :: "integer list \<Zpfun> integer list"
   assume 
@@ -428,9 +436,41 @@ zoperation ClearConnect =
           , Callers\<Zprime> = Callers - {s}
           , connected\<Zprime> = {s} \<Zndres> connected]"
 
+(*
 lemma ClearConnect_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}ClearConnect s\<^bold>{Exchange_inv\<^bold>}"
-  unfolding ClearConnect_def Exchange_inv_def Exchange_def
+  unfolding ClearConnect_def
+proof (hoare_wlp_auto)
+  fix Free :: "\<bbbP> integer list" and Unavailable :: "\<bbbP> integer list" and Callers :: "\<bbbP> integer list" and cal :: "integer list \<Zpfun>
+                        Status \<times> integer list" and connected :: "integer list \<Zpfun> integer list"
+  assume 
+    pres: "s \<in> Subs" "s \<in> dom cal" "fst (cal(s)\<^sub>p) = speech" and
+    invs: "Exchange Free Unavailable Callers cal connected"
+
+  then interpret P: Exchange Free Unavailable Callers cal connected
+    by simp  
+
+  from pres P.connected P.Callers have scon: "s \<in> dom connected"
+    by (auto simp add: st_def)
+
+  with P.parts have ncon: "connected s \<notin> dom cal"
+    by (auto)
+
+  show "Exchange (insert s Free) Unavailable (Callers - {s}) (({s} \<Zndres> cal)(connected(s)\<^sub>p \<mapsto> (seize, []))\<^sub>p) ({s} \<Zndres> connected)"
+  proof
+    show "pfun_inj ({s} \<Zndres> connected)"
+      by (simp add: P.connected_inj pfun_inj_dres)
+  next
+    from pres P.part_props show "[insert s Free, Unavailable, dom (({s} \<Zndres> cal)(connected(s)\<^sub>p \<mapsto> (seize, []))\<^sub>p), ran ({s} \<Zndres> connected)] partitions Subs"
+      apply (simp add: disjoint_iff)
+  next
+    show "[({s} \<Zndres> cal)(connected(s)\<^sub>p \<mapsto> (seize, []))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>\<^sup>\<leftarrow> Connected = Callers - {s}" sorry
+  next
+    show "(Callers - {s}) \<Zdres> ([({s} \<Zndres> cal)(connected(s)\<^sub>p \<mapsto> (seize, []))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [{s} \<Zndres> connected]\<^sub>\<Zpfun>" sorry
+  qed
+qed
+  
   oops
+*)
 
 zoperation ClearSuspend =
   params s \<in> Subs
@@ -465,8 +505,7 @@ zoperation Connect2Ringing =
           , connected\<Zprime> = connected \<oplus> {s \<mapsto> (cal \<Zcomp> num) s}]"
 
 lemma Connect2Ringing_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}Connect2Ringing s\<^bold>{Exchange_inv\<^bold>}"
-  unfolding Connect2Ringing_def
-proof (hoare_wlp_auto)
+proof zpog
   fix Free :: "\<bbbP> integer list" and Unavailable :: "\<bbbP> integer list" and Callers :: "\<bbbP> integer list" and cal :: "integer list \<Zpfun>
                         Status \<times> integer list" and connected :: "integer list \<Zpfun> integer list"
   assume 
@@ -498,8 +537,7 @@ zoperation Connect2Engaged =
   update "[ cal\<Zprime> = cal \<oplus> {s \<mapsto> (engaged, (cal \<Zcomp> num) s)} ]"
 
 lemma Connect2Engaged_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}Connect2Engaged s\<^bold>{Exchange_inv\<^bold>}"
-  unfolding Connect2Engaged_def
-proof (hoare_wlp_auto)
+proof zpog
   fix Free :: "\<bbbP> integer list" and Unavailable :: "\<bbbP> integer list" and Callers :: "\<bbbP> integer list" and cal :: "integer list \<Zpfun>
                         Status \<times> integer list" and connected :: "integer list \<Zpfun> integer list"
   assume 
