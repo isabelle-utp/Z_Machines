@@ -81,7 +81,7 @@ fun zmachine_body_sem n st init ops ctx =
          , ((Binding.name (n ^ "_def")
            , [Attrib.check_src @{context} (Token.make_src ("code", Position.none) [])])
            , check_term ctx 
-              (const @{const_name "machine"} $ Type.constraint (st --> st) init $ oplist))) ctx) end
+              (const @{const_name "z_machine"} $ Type.constraint (st --> st) init $ oplist))) ctx) end
 
 fun chantype_name n = n ^ "_chan"
 

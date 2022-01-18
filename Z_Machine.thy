@@ -35,8 +35,8 @@ definition zop_event :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarro
 
 text \<open> A machine has an initialisation and a list of operations. \<close>
 
-definition machine :: "('s::default) subst \<Rightarrow> ('e, 's) htree list \<Rightarrow> 'e process" where
-[code_unfold]: "machine Init Ops = process Init (loop (foldr (\<box>) Ops Stop))"
+definition z_machine :: "('s::default) subst \<Rightarrow> ('e, 's) htree list \<Rightarrow> 'e process" where
+[code_unfold]: "z_machine Init Ops = process Init (loop (foldr (\<box>) Ops Stop))"
 
 ML_file \<open>Z_Machine.ML\<close>
 
