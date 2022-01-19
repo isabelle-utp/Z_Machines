@@ -37,7 +37,7 @@ zstore Dwarf =
 
 zoperation SetNewProperState =
   over Dwarf
-  params st\<in>"ProperState - {last_proper_state}"
+  params st\<in>"ProperState - {desired_proper_state}"
   pre "current_state = signalLamps desired_proper_state"
   update "[last_proper_state\<Zprime> = desired_proper_state
           ,turn_off\<Zprime> = current_state - signalLamps st
@@ -82,28 +82,28 @@ zmachine DwarfSignal =
 animate DwarfSignal
 
 zexpr NeverShowAll 
-  is "Dwarf_inv \<and> current_state \<noteq> {L1, L2, L3}"
+  is "current_state \<noteq> {L1, L2, L3}"
 
 zexpr MaxOneLampChange
-  is "Dwarf_inv \<and> (\<exists> l. current_state - last_state = {l} \<or> last_state - current_state = {l} \<or> last_state = current_state)"
+  is "(\<exists> l. current_state - last_state = {l} \<or> last_state - current_state = {l} \<or> last_state = current_state)"
 
 zexpr ForbidStopToDrive
-  is "Dwarf_inv \<and> (last_proper_state = stop \<longrightarrow> desired_proper_state \<noteq> drive)"
+  is "(last_proper_state = stop \<longrightarrow> desired_proper_state \<noteq> drive)"
 
 zexpr DarkOnlyToStop
-  is "Dwarf_inv \<and> (last_proper_state = dark \<longrightarrow> desired_proper_state = stop)"
+  is "(last_proper_state = dark \<longrightarrow> desired_proper_state = stop)"
 
 zexpr DarkOnlyFromStop
-  is "Dwarf_inv \<and> (desired_proper_state = dark \<longrightarrow> last_proper_state = stop)"
+  is "(desired_proper_state = dark \<longrightarrow> last_proper_state = stop)"
 
 zexpr DwarfReq
   is "NeverShowAll \<and> MaxOneLampChange \<and> ForbidStopToDrive \<and> DarkOnlyToStop \<and> DarkOnlyFromStop"
 
 lemma "Init establishes Dwarf_inv"
-  by z_wlp_auto
+  by zpog_full
 
 lemma "(SetNewProperState p) preserves Dwarf_inv"
-  by z_wlp_auto
+  by (zpog_full; auto)
 
 lemma "(SetNewProperState p) preserves NeverShowAll"
   by z_wlp_auto
@@ -112,7 +112,7 @@ lemma "(SetNewProperState p) preserves MaxOneLampChange"
   by z_wlp_auto
 
 lemma "(SetNewProperState p) preserves ForbidStopToDrive"
-  apply z_wlp_auto
+  apply zpog_full
   quickcheck
   oops
 

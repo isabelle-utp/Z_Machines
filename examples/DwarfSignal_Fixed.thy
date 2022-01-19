@@ -38,7 +38,7 @@ subsection \<open> Operations \<close>
 
 zoperation SetNewProperState =
   over Dwarf
-  params st\<in>"ProperState - {last_proper_state}"
+  params st\<in>"ProperState - {desired_proper_state}"
   pre "current_state = signalLamps desired_proper_state \<and> (desired_proper_state = stop \<longrightarrow> st \<noteq> drive)"
   update "[last_proper_state\<Zprime> = desired_proper_state
           ,turn_off\<Zprime> = current_state - signalLamps st
@@ -80,6 +80,7 @@ definition Init :: "Dwarf subst" where
 zmachine DwarfSignal = 
   init Init
   operations SetNewProperState TurnOn TurnOff Shine
+
 animate DwarfSignal
 
 subsection \<open> Structural Invariants \<close>
@@ -98,15 +99,6 @@ lemma TurnOff_correct: "(TurnOff l) preserves Dwarf_inv"
 
 lemma Shine_correct: "(Shine l) preserves Dwarf_inv"
   by z_wlp_auto
-
-
-lemma 
-  shows "deadlock_free (z_machine \<sigma> Ops)"
-  oops
-
-lemma "`Dwarf_inv \<longrightarrow> (\<exists> l. wp (zop_event shine Shine_type Shine) Dwarf_inv)`"
-  apply (simp add: wp Dwarf_inv_def zop_event_def Dwarf_def Shine_def Shine_type_def TurnOn_def usubst_eval)
-  done
 
 subsection \<open> Requirements \<close>
 
