@@ -23,20 +23,42 @@ lemma wlp_zop [wp, code_unfold]: "wlp (mk_zop P \<sigma> Q v) b = [\<lambda> \<s
 lemma itree_pre_zop [dpre]: "itree_pre (mk_zop P \<sigma> Q v) = [\<lambda> \<s>. P v \<s>]\<^sub>e"
   by (simp add: mk_zop_def dpre wp)
 
-lemma itree_rel_zop [rel]: "itree_rel (mk_zop P \<sigma> Q v) = {(x, z). P v x \<and> Q v x \<and> z = \<sigma> v x}"
-  by (simp add: mk_zop_def rel relcomp_unfold)
+lemma itree_rel_zop [itree_rel]: "itree_rel (mk_zop P \<sigma> Q v) = {(x, z). P v x \<and> Q v x \<and> z = \<sigma> v x}"
+  by (simp add: mk_zop_def itree_rel relcomp_unfold)
 
 text \<open> An operation can have its parameters supplied by an event, using the construct below. \<close>
 
-definition zop_event :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree) \<Rightarrow> ('e, 's) htree" where
-[code_unfold]: "zop_event c A zop = input_in_where c 
-                                    A 
-                                    (\<lambda> v. (wp (zop v) True, zop v))"
+abbreviation input_in_where_choice 
+  :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('s \<Rightarrow> bool) \<times> ('e, 's) htree) \<Rightarrow> 's \<Rightarrow> 'e \<Zpfun> ('e, 's) itree" where
+  "input_in_where_choice c A P \<equiv> (\<lambda> s. (\<lambda> e \<in> build\<^bsub>c\<^esub> ` A s | fst (P (the (match\<^bsub>c\<^esub> e))) s \<bullet> snd (P (the (match\<^bsub>c\<^esub> e))) s))"
+
+definition zop_event :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree) \<Rightarrow> _" where
+[code_unfold]: "zop_event c A zop = input_in_where_choice c A (\<lambda> v. (wp (zop v) True, zop v))"
 
 text \<open> A machine has an initialisation and a list of operations. \<close>
 
+lemma wp_Vis: "wp (\<lambda> s. Vis (F s)) P = (\<exists> e\<in>dom F. wp (\<lambda> s. F s e) P)\<^sub>e"
+  apply (auto simp add: wp_itree_def itree_rel_defs fun_eq_iff)
+  apply (metis imageE pran_pdom)
+  apply (meson pfun_app_in_ran)
+  done
+
+lemma wlp_Vis: "wlp (\<lambda> s. Vis (F s)) P = (\<forall> e\<in>dom F. wlp (\<lambda> s. F s e) P)\<^sub>e"
+  apply (auto simp add: wlp_itree_def itree_rel_defs fun_eq_iff)
+  apply (meson pfun_app_in_ran)
+  apply (metis imageE pran_pdom)
+  done
+
+definition z_machine_main :: "('s \<Rightarrow> 'e \<Zpfun> ('e, 's) itree) list \<Rightarrow> ('e, 's) htree" where
+"z_machine_main Ops = (\<lambda> s. Vis (foldr (\<lambda> P Q. P s \<oplus> Q) Ops {\<mapsto>}))"
+
+definition z_machine :: "('s::default) subst \<Rightarrow> ('s \<Rightarrow> 'e \<Zpfun> ('e, 's) itree) list \<Rightarrow> 'e process" where
+[code_unfold]: "z_machine Init Ops = process Init (loop (z_machine_main Ops))"
+
+(*
 definition z_machine :: "('s::default) subst \<Rightarrow> ('e, 's) htree list \<Rightarrow> 'e process" where
 [code_unfold]: "z_machine Init Ops = process Init (loop (foldr (\<box>) Ops Stop))"
+*)
 
 ML_file \<open>Z_Machine.ML\<close>
 
