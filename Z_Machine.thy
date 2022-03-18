@@ -79,4 +79,30 @@ setup \<open> Explorer_Lib.switch_to_quotes \<close>
 
 lit_vars
 
+text \<open> Change the default target of string syntax to be literals. Literals are much better for
+  code generation, and also provide more control since they are a distinct type to lists.
+  We also replace the @{typ string} type name with @{typ "String.literal"}.
+ \<close>
+
+bundle literal_syntax
+begin
+
+no_syntax
+  "_String" :: "str_position \<Rightarrow> string"    ("_")
+
+syntax
+  "_Literal" :: "str_position \<Rightarrow> String.literal"   ("_")
+
+end
+
+hide_type (open) string
+
+type_synonym string = "String.literal"
+
+unbundle literal_syntax
+
+text \<open> The next line allows us to create lists of characters from literals by coercion. \<close>
+
+declare [[coercion String.explode]]
+
 end
