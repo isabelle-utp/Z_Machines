@@ -30,8 +30,8 @@ method z_wlp_auto uses add = (hoare_wlp_auto add: z_defs z_locale_defs add)
 method zpog uses add = 
   (hoare_wlp add: z_defs add; 
    expr_taut; 
-   clarsimp del: notI;
-   (((rule conjI | erule disjE); (clarsimp)?)+)?)
+   (clarsimp del: notI;
+   ((rule conjI | erule disjE); (clarsimp)?)+)?)
 method zpog_full uses add = (zpog add: z_locale_defs add)
 
 end
