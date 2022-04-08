@@ -1,11 +1,11 @@
 section \<open> Incubator \<close>
 
 theory Incubator_locales
-  imports "Z_Machines.Z_Machine"
+  imports "Z_Machines.Z_Machine" "HOL-Library.Code_Target_Int"
 begin
 
-consts MAX_TEMP :: \<int>
-consts MIN_TEMP :: \<int>
+consts MAX_TEMP :: \<nat>
+consts MIN_TEMP :: \<nat>
 
 definition "TEMP = {MIN_TEMP..MAX_TEMP}"
 
@@ -14,7 +14,7 @@ def_consts
   MIN_TEMP = 15
 
 zstore IncubatorMonitor = 
-  temp :: \<int>
+  temp :: \<nat>
   where mintemp: "MIN_TEMP \<le> temp" maxtemp: "temp \<le> MAX_TEMP"
 
 zoperation Increment =
@@ -28,12 +28,12 @@ proof zpog
   assume pres: "temp < MAX_TEMP" and inv: "IncubatorMonitor temp" 
   then interpret IncubatorMonitor temp
     by simp
-  show "IncubatorMonitor (temp + 1)"
+  show "IncubatorMonitor (Suc temp )"
   proof
-    show "MIN_TEMP \<le> temp + 1"
+    show "MIN_TEMP \<le> Suc temp"
       using mintemp by auto
-    show "temp + 1 \<le> MAX_TEMP"
-      by (simp add: add1_zle_eq pres)
+    show "Suc temp \<le> MAX_TEMP"
+      using pres by auto
   qed
 qed
 
@@ -43,7 +43,7 @@ zoperation Decrement =
   update "[temp\<Zprime> = temp - 1]"
 
 lemma Decrement_correct: "\<^bold>{IncubatorMonitor_inv\<^bold>} Decrement() \<^bold>{IncubatorMonitor_inv\<^bold>}"
-  unfolding Decrement_def IncubatorMonitor_inv_def IncubatorMonitor_def by hoare_wlp
+  by (zpog_full; simp)
 
 zoperation GetTemp =
   over IncubatorMonitor

@@ -79,7 +79,6 @@ zmachine DwarfSignal =
   init Init
   operations SetNewProperState TurnOn TurnOff Shine
 
-animate DwarfSignal
 
 zexpr NeverShowAll 
   is "current_state \<noteq> {L1, L2, L3}"
@@ -99,6 +98,16 @@ zexpr DarkOnlyFromStop
 zexpr DwarfReq
   is "NeverShowAll \<and> MaxOneLampChange \<and> ForbidStopToDrive \<and> DarkOnlyToStop \<and> DarkOnlyFromStop"
 
+zoperation ViolNeverShowAll =
+  pre "\<not> NeverShowAll"
+
+zmachine DwarfSignalTest = 
+  init Init
+  operations SetNewProperState TurnOn TurnOff Shine ViolNeverShowAll
+
+animate DwarfSignalTest
+
+
 lemma "Init establishes Dwarf_inv"
   by zpog_full
 
@@ -106,10 +115,10 @@ lemma "(SetNewProperState p) preserves Dwarf_inv"
   by (zpog_full; auto)
 
 lemma "(SetNewProperState p) preserves NeverShowAll"
-  by z_wlp_auto
+  by zpog_full
 
 lemma "(SetNewProperState p) preserves MaxOneLampChange"
-  by z_wlp_auto
+  by zpog_full
 
 lemma "(SetNewProperState p) preserves ForbidStopToDrive"
   apply zpog_full
@@ -117,19 +126,9 @@ lemma "(SetNewProperState p) preserves ForbidStopToDrive"
   oops
 
 lemma "TurnOn l preserves Dwarf_inv"
-  by z_wlp_auto
+  by (zpog_full, auto)
 
 lemma "TurnOff l preserves Dwarf_inv"
-  by z_wlp_auto  
-
-
-(*
-definition "CheckReq = 
-  (\<questiondown>\<not> @NeverShowAll? \<Zcomp> violation!(STR ''NeverShowAll'') \<rightarrow> Skip) \<box>
-  (\<questiondown>\<not> @MaxOneLampChange? \<Zcomp> violation!(STR ''MaxOneLampChange'') \<rightarrow> Skip) \<box>
-  (\<questiondown>\<not> @ForbidStopToDrive? \<Zcomp> violation!(STR ''ForbidStopToDrive'') \<rightarrow> Skip) \<box>
-  (\<questiondown>\<not> @DarkOnlyToStop? \<Zcomp> violation!(STR ''DarkOnlyToStop'') \<rightarrow> Skip) \<box>
-  (\<questiondown>\<not> @DarkOnlyFromStop? \<Zcomp> violation!(STR ''DarkOnlyFromStop'') \<rightarrow> Skip)"
-*)
+  by (zpog_full, auto)  
 
 end

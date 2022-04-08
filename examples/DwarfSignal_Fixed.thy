@@ -39,7 +39,10 @@ subsection \<open> Operations \<close>
 zoperation SetNewProperState =
   over Dwarf
   params st\<in>"ProperState - {desired_proper_state}"
-  pre "current_state = signalLamps desired_proper_state \<and> (desired_proper_state = stop \<longrightarrow> st \<noteq> drive)"
+  pre "current_state = signalLamps desired_proper_state 
+       \<and> (desired_proper_state = stop \<longrightarrow> st \<noteq> drive)
+       \<and> (desired_proper_state = dark \<longrightarrow> st = stop)
+       \<and> (st = dark \<longrightarrow> desired_proper_state = stop)"
   update "[last_proper_state\<Zprime> = desired_proper_state
           ,turn_off\<Zprime> = current_state - signalLamps st
           ,turn_on\<Zprime> = signalLamps st - current_state
@@ -86,19 +89,19 @@ animate DwarfSignal
 subsection \<open> Structural Invariants \<close>
 
 lemma "Init establishes Dwarf_inv"
-  by z_wlp_auto
+  by zpog_full
 
 lemma "(SetNewProperState p) preserves Dwarf_inv"
-  by z_wlp_auto
+  by (zpog_full, auto)
 
 lemma TurnOn_correct: "(TurnOn l) preserves Dwarf_inv"
-  by z_wlp_auto
+  by (zpog_full, auto)
 
 lemma TurnOff_correct: "(TurnOff l) preserves Dwarf_inv"
-  by z_wlp_auto  
+  by (zpog_full, auto)
 
 lemma Shine_correct: "(Shine l) preserves Dwarf_inv"
-  by z_wlp_auto
+  by (zpog_full)
 
 subsection \<open> Requirements \<close>
 
@@ -107,11 +110,11 @@ subsubsection \<open> NeverShowAll \<close>
 zexpr NeverShowAll 
   is "current_state \<noteq> {L1, L2, L3}"
 
-lemma "(SetNewProperState p) preserves NeverShowAll"
-  by z_wlp_auto
+lemma SetNewProperState_NeverShowAll: "(SetNewProperState p) preserves NeverShowAll"
+  by zpog_full
 
 lemma TurnOn_NeverShowAll: "TurnOn l preserves NeverShowAll under Dwarf_inv"
-proof zpog_full
+proof (zpog_full)
   fix turn_on :: "\<bbbP> LampId" and current_state :: "\<bbbP> LampId" and desired_proper_state :: ProperState
   assume 
     1: "signalLamps desired_proper_state = current_state \<union> turn_on" and
@@ -133,40 +136,53 @@ subsubsection \<open> MaxOneLampChange \<close>
 zexpr MaxOneLampChange
   is "\<exists> l. current_state - last_state = {l} \<or> last_state - current_state = {l} \<or> last_state = current_state"
 
-lemma "(SetNewProperState p) preserves MaxOneLampChange"
-  by z_wlp_auto
+lemma SetNewProperState_MaxOneLampChange: "(SetNewProperState p) preserves MaxOneLampChange"
+  by zpog
+
+lemma TurnOn_MaxOneLampChange: "(TurnOn l) preserves MaxOneLampChange"
+  by (zpog_full; auto)
+
+lemma TurnOff_MaxOneLampChange: "(TurnOff l) preserves MaxOneLampChange"
+  by (zpog_full; auto)
 
 subsubsection \<open> ForbidStopToDrive \<close>
 
 zexpr ForbidStopToDrive
   is "last_proper_state = stop \<longrightarrow> desired_proper_state \<noteq> drive"
 
-lemma "(SetNewProperState p) preserves ForbidStopToDrive"
-  by z_wlp_auto  
+lemma SetNewProperState_ForbidStopToDrive: "(SetNewProperState p) preserves ForbidStopToDrive"
+  by zpog  
+
+lemma "(TurnOn l) preserves ForbidStopToDrive"
+  by zpog
+
+lemma "(TurnOff l) preserves ForbidStopToDrive"
+  by zpog
 
 subsubsection \<open> DarkOnlyToStop \<close>
 
 zexpr DarkOnlyToStop
   is "last_proper_state = dark \<longrightarrow> desired_proper_state = stop"
 
+lemma SetNewProperState_DarkOnlyToStop: "(SetNewProperState p) preserves DarkOnlyToStop"
+  by zpog
+
 subsubsection \<open> DarkOnlyFromStop \<close>
 
 zexpr DarkOnlyFromStop
   is "desired_proper_state = dark \<longrightarrow> last_proper_state = stop"
+
+lemma SetNewProperState_DarkOnlyFromStop: "(SetNewProperState p) preserves DarkOnlyFromStop"
+  by zpog
 
 subsection \<open> All Requirements \<close>
 
 zexpr DwarfReq
   is "NeverShowAll \<and> MaxOneLampChange \<and> ForbidStopToDrive \<and> DarkOnlyToStop \<and> DarkOnlyFromStop"
 
-
-(*
-definition "CheckReq = 
-  (\<questiondown>\<not> @NeverShowAll? \<Zcomp> violation!(STR ''NeverShowAll'') \<rightarrow> Skip) \<box>
-  (\<questiondown>\<not> @MaxOneLampChange? \<Zcomp> violation!(STR ''MaxOneLampChange'') \<rightarrow> Skip) \<box>
-  (\<questiondown>\<not> @ForbidStopToDrive? \<Zcomp> violation!(STR ''ForbidStopToDrive'') \<rightarrow> Skip) \<box>
-  (\<questiondown>\<not> @DarkOnlyToStop? \<Zcomp> violation!(STR ''DarkOnlyToStop'') \<rightarrow> Skip) \<box>
-  (\<questiondown>\<not> @DarkOnlyFromStop? \<Zcomp> violation!(STR ''DarkOnlyFromStop'') \<rightarrow> Skip)"
-*)
+lemma SetNewProperState_DwarfReq: "(SetNewProperState p) preserves DwarfReq"
+  by (auto intro!: hl_conj simp add: DwarfReq_def SetNewProperState_NeverShowAll 
+      SetNewProperState_MaxOneLampChange SetNewProperState_ForbidStopToDrive 
+      SetNewProperState_DarkOnlyToStop SetNewProperState_DarkOnlyFromStop)
 
 end

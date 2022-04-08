@@ -26,7 +26,7 @@ lemma "H{BirthdayBook_inv} AddBirthday (n, d) {BirthdayBook_inv}"
 zoperation FindBirthday =
   over BirthdayBook
   params name\<in>NAME date\<in>DATE
-  pre "name \<in> known"
+  pre "name \<in> dom birthday"
   where "date = birthday(name)"
 
 lemma "H{BirthdayBook_inv} FindBirthday (n, d) {BirthdayBook_inv}"
@@ -40,6 +40,7 @@ zoperation Remind =
 zmachine BirthdayBookSys = 
   init "[known \<leadsto> {}, birthday \<leadsto> {\<mapsto>}]"
   operations AddBirthday FindBirthday Remind
+
 
 def_consts NAME = "{STR ''Simon''}" 
 def_consts DATE = "{STR ''25/08/1983''}"
