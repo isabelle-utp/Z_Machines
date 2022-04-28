@@ -3,7 +3,7 @@
 structure Z_Machine = struct
 
 type param = string * string
-datatype operation = Operation of {name: string, state: string, params: param list, guard: string, update: string, post: string}
+datatype operation = Operation of {name: string, state: string, params: param list, guard: string list, update: string, post: string}
 datatype zmachine = ZMachine of {name: string, state: string, init: string, operations: string list}
 
 val SEXP = Const (@{const_name SEXP}, dummyT --> dummyT)
@@ -37,7 +37,7 @@ fun mk_zop (Operation {name = n, state = s, params = ps, guard = g, update = upd
       val ppre = 
          lambda (free state_id) 
                 (mk_conj (const @{const_name Set.member} $ ppat $ (pset $ Bound 0)
-                         ,mk_lift_expr ctx (parse_term ctx g) $ Bound 0)) 
+                         , (mk_lift_expr ctx) (foldr1 mk_conj ((map (parse_term ctx) g))) $ Bound 0)) 
       val code_unfold = Attrib.check_src @{context} (Token.make_src ("code_unfold", Position.none) [])
       val z_defs = Attrib.check_src @{context} (Token.make_src ("z_defs", Position.none) [])
   in snd (Local_Theory.define 
@@ -103,7 +103,7 @@ val parse_operation =
   ((name --| @{keyword "="}) --
   (Scan.optional (@{keyword "over"} |-- typ) "_") --
   (Scan.optional (@{keyword "params"} |-- repeat1 parse_param) []) --
-  (Scan.optional (@{keyword "pre"} |-- term) "True") --
+  (Scan.optional (@{keyword "pre"} |-- repeat1 term) ["True"]) --
   (Scan.optional (@{keyword "update"} |-- term) "[\<leadsto>]") --
   (Scan.optional (@{keyword "where"} |-- term) "True"))
   >> (fn (((((n, st), ps), g), upd), post) => Operation {name = n, state = st, params = ps, guard = g, update = upd, post = post})
