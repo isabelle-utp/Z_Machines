@@ -5,6 +5,9 @@ theory Z_Machine
     and "over" "init" "operations" "params" "pre" "update" "\<in>"
 begin
 
+hide_const Map.dom
+hide_const Map.ran
+
 text \<open> An operation is constructed from a precondition, update, and postcondition, all of which
   are parameterised. \<close>
 
@@ -26,14 +29,35 @@ lemma itree_pre_zop [dpre]: "itree_pre (mk_zop P \<sigma> Q v) = [\<lambda> \<s>
 lemma itree_rel_zop [itree_rel]: "itree_rel (mk_zop P \<sigma> Q v) = {(x, z). P v x \<and> Q v x \<and> z = \<sigma> v x}"
   by (simp add: mk_zop_def itree_rel relcomp_unfold)
 
+lemma mk_zop_state_sat: "\<lbrakk> P v s; Q v s \<rbrakk> \<Longrightarrow> mk_zop P \<sigma> Q v s = Ret (\<sigma> v s)"
+  by (simp add: mk_zop_def seq_itree_def kleisli_comp_def assume_def test_def assigns_def)
+
 text \<open> An operation can have its parameters supplied by an event, using the construct below. \<close>
 
 abbreviation input_in_where_choice 
   :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('s \<Rightarrow> bool) \<times> ('e, 's) htree) \<Rightarrow> 's \<Rightarrow> 'e \<Zpfun> ('e, 's) itree" where
   "input_in_where_choice c A P \<equiv> (\<lambda> s. (\<lambda> e \<in> build\<^bsub>c\<^esub> ` A s | fst (P (the (match\<^bsub>c\<^esub> e))) s \<bullet> snd (P (the (match\<^bsub>c\<^esub> e))) s))"
 
-definition zop_event :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree) \<Rightarrow> _" where
-[code_unfold]: "zop_event c A zop = input_in_where_choice c A (\<lambda> v. (wp (zop v) True, zop v))"
+(*
+definition zop_event :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree) \<Rightarrow> 's \<Rightarrow> 'e \<Zpfun> ('e, 's) itree" where
+[code_unfold]: "zop_event c A zop = input_in_where_choice c A (\<lambda> v. (pre (zop v), zop v))"
+*)
+
+definition zop_event :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree) \<Rightarrow> ('e, 's) htree" where
+[code_unfold]: "zop_event c A zop = (\<lambda> s. Vis (prism_fun c (A s) (\<lambda> v. (pre (zop v) s, zop v s))))"
+
+lemma hl_zop_event [hoare_safe]: "\<lbrakk> \<And> p. \<^bold>{P\<^bold>} zop p \<^bold>{Q\<^bold>} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A zop \<^bold>{Q\<^bold>}"
+  by (auto elim!: trace_to_VisE simp add: zop_event_def hoare_alt_def)
+     (metis (no_types, lifting) IntE mem_Collect_eq pabs_apply pdom_pabs prism_fun_def snd_conv)
+
+lemma zop_event_is_event_block: 
+  "\<lbrakk> wb_prism c \<rbrakk> \<Longrightarrow> zop_event c A (mk_zop P \<sigma> Q) = event_block c A (\<lambda> p. ([\<lambda> s. P p s \<and> Q p s]\<^sub>e, \<sigma> p))"
+  by (auto intro: prism_fun_cong2 simp add: zop_event_def event_block_def wp usubst fun_eq_iff mk_zop_state_sat)
+
+(*
+lemma pdom_zop_event: "wb_prism c \<Longrightarrow> pdom (zop_event c A zop s) = {e. e \<in> build\<^bsub>c\<^esub> ` A s \<and> pre (zop (the (match\<^bsub>c\<^esub> e))) s}"
+  by (simp add: zop_event_def dom_prism_fun, auto)
+*)
 
 text \<open> A machine has an initialisation and a list of operations. \<close>
 
@@ -49,16 +73,43 @@ lemma wlp_Vis: "wlp (\<lambda> s. Vis (F s)) P = (\<forall> e\<in>dom F. wlp (\<
   apply (metis imageE pran_pdom)
   done
 
-definition z_machine_main :: "('s \<Rightarrow> 'e \<Zpfun> ('e, 's) itree) list \<Rightarrow> ('e, 's) htree" where
-"z_machine_main Ops = (\<lambda> s. Vis (foldr (\<lambda> P Q. P s \<oplus> Q) Ops {\<mapsto>}))"
+definition z_machine_main :: "(('e, 's) htree) list \<Rightarrow> ('e, 's) htree" where
+"z_machine_main Ops = foldr (\<box>) Ops Stop"
 
-definition z_machine :: "('s::default) subst \<Rightarrow> ('s \<Rightarrow> 'e \<Zpfun> ('e, 's) itree) list \<Rightarrow> 'e process" where
+definition z_machine :: "('s::default) subst \<Rightarrow> (('e, 's) htree) list \<Rightarrow> 'e process" where
 [code_unfold]: "z_machine Init Ops = process Init (loop (z_machine_main Ops))"
 
 (*
 definition z_machine :: "('s::default) subst \<Rightarrow> ('e, 's) htree list \<Rightarrow> 'e process" where
 [code_unfold]: "z_machine Init Ops = process Init (loop (foldr (\<box>) Ops Stop))"
 *)
+
+lemma deadlock_free_z_machine:
+  fixes Inv :: "'s::default \<Rightarrow> bool"
+  assumes 
+    "Init establishes Inv"
+    "\<And> E. E\<in>set Events \<Longrightarrow> E preserves Inv"
+    "`Inv \<longrightarrow> dfp (foldr (\<box>) Events Stop)`"
+  shows "deadlock_free (z_machine Init Events)"
+proof (simp add: z_machine_def z_machine_main_def, rule deadlock_free_processI, rule deadlock_free_init_loop[where P="Inv"], rule assms(1), simp_all)
+  from assms(2) show "\<^bold>{Inv\<^bold>} foldr (\<box>) Events Stop \<^bold>{Inv\<^bold>}"
+  proof (induct Events)
+    case Nil
+    then show ?case by (simp, metis SEXP_def hl_Stop)
+  next
+    case (Cons Ev Events)
+    then show ?case
+      by (metis foldr.simps(2) hl_choice list.set_intros(1) list.set_intros(2) o_apply)
+  qed
+  show "`Inv \<longrightarrow> dfp (foldr (\<box>) Events Stop)`"
+    using assms(3) by auto
+qed
+
+method deadlock_free for I :: "'s::default \<Rightarrow> bool" uses invs = 
+  (rule deadlock_free_z_machine[where Inv="I"]
+  ,zpog_full
+  ,(simp, safe intro!: hl_zop_event invs)
+  ,(simp add: zop_event_is_event_block extchoice_event_block z_defs z_locale_defs wp Bex_Sum_iff; expr_auto))
 
 ML_file \<open>Z_Machine.ML\<close>
 
@@ -71,9 +122,6 @@ Outer_Syntax.command @{command_keyword zoperation} "define a Z operation"
 \<close>
 
 code_datatype pfun_of_alist pfun_of_map pfun_of_pinj pfun_entries
-
-hide_const Map.dom
-hide_const Map.ran
 
 setup \<open> Explorer_Lib.switch_to_quotes \<close>
 

@@ -3,7 +3,7 @@
 structure Z_Machine = struct
 
 type param = string * string
-datatype operation = Operation of {name: string, state: string, params: param list, guard: string list, update: string, post: string}
+datatype operation = Operation of {name: string, state: string, params: param list, pre: string list, update: string, guard: string list}
 datatype zmachine = ZMachine of {name: string, state: string, init: string, operations: string list}
 
 val SEXP = Const (@{const_name SEXP}, dummyT --> dummyT)
@@ -24,9 +24,15 @@ fun firstLower s =
 
 fun zop_type n = n ^ "_type"
 
+fun zop_pre n = n ^ "_pre"
+
+fun zop_guard n = n ^ "_guard"
+
+fun zop_update n = n ^ "_update"
+
 (* FIXME: Guard ~> Precondition, Postcondition ~> Guard *)
 
-fun mk_zop (Operation {name = n, state = s, params = ps, guard = g, update = upd, post = post}) ctx =
+fun mk_zop (Operation {name = n, state = s, params = ps, pre = pre, update = upd, guard = g}) ctx =
   let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
       val pss = (map (fn (p, t) => (p, lift_expr ctx ((parse_term ctx t)))) ps)
       val pset = params_set (map snd pss)
@@ -36,15 +42,39 @@ fun mk_zop (Operation {name = n, state = s, params = ps, guard = g, update = upd
       val ppat = mk_tuple (map (free o fst) pss)
       val ppre = 
          lambda (free state_id) 
+                (mk_lift_expr ctx (foldr1 mk_conj ((map (parse_term ctx) pre))) $ Bound 0) 
+      val pguard = 
+         lambda (free state_id) 
                 (mk_conj (const @{const_name Set.member} $ ppat $ (pset $ Bound 0)
-                         , (mk_lift_expr ctx) (foldr1 mk_conj ((map (parse_term ctx) g))) $ Bound 0)) 
+                         , mk_lift_expr ctx (foldr1 mk_conj ((map (parse_term ctx) g))) $ Bound 0)) 
+
+      val pupd = Type.constraint (st --> st) (parse_term ctx upd)
+
       val code_unfold = Attrib.check_src @{context} (Token.make_src ("code_unfold", Position.none) [])
       val z_defs = Attrib.check_src @{context} (Token.make_src ("z_defs", Position.none) [])
-  in snd (Local_Theory.define 
+      fun gen n ty term = snd o Local_Theory.define 
+           ((Binding.name n, NoSyn)
+         , ((Binding.name (n ^ "_def")
+           , [code_unfold, z_defs])
+           , check_term ctx term))
+  in (* Generate the type of the operation (i.e. the set of possible parameter values *)
+     snd (Local_Theory.define 
            ((Binding.name (zop_type n), NoSyn)
          , ((Binding.name (zop_type n ^ "_def")
            , [code_unfold, z_defs])
            , check_term ctx set)) ctx) |>
+     (
+     (*
+     (* Generate the precondition *)
+     gen (zop_pre n) (parm --> st --> dummyT) (tupled_lambda ppat (SEXP $ ppre))
+     #>
+     (* Generate the guard *)
+     gen (zop_guard n) (parm --> st --> dummyT) (tupled_lambda ppat (SEXP $ pguard))
+     #>
+     (* Generate the update *)
+     gen (zop_update n) (parm --> st --> st) (tupled_lambda ppat pupd)
+     #>
+     *)     
      snd o Local_Theory.define 
            ((Binding.name n, NoSyn)
          , ((Binding.name (n ^ "_def")
@@ -56,8 +86,11 @@ fun mk_zop (Operation {name = n, state = s, params = ps, guard = g, update = upd
               (Const (@{const_name "mk_zop"}, (parm --> st --> dummyT) --> dummyT)
                 $ tupled_lambda ppat (SEXP $ ppre))
                 $ tupled_lambda ppat (Type.constraint (st --> st) (parse_term ctx upd))
-                $ tupled_lambda ppat (SEXP $ Lift_Expr.mk_lift_expr ctx (parse_term ctx post))
-                )))
+                $ tupled_lambda ppat (SEXP $ pguard)
+(*                $ free (zop_pre n)
+                $ free (zop_update n)
+                $ free (zop_guard n) *)
+                ))))
   end;
 
 fun get_zop_ptype n ctx =
@@ -105,8 +138,8 @@ val parse_operation =
   (Scan.optional (@{keyword "params"} |-- repeat1 parse_param) []) --
   (Scan.optional (@{keyword "pre"} |-- repeat1 term) ["True"]) --
   (Scan.optional (@{keyword "update"} |-- term) "[\<leadsto>]") --
-  (Scan.optional (@{keyword "where"} |-- term) "True"))
-  >> (fn (((((n, st), ps), g), upd), post) => Operation {name = n, state = st, params = ps, guard = g, update = upd, post = post})
+  (Scan.optional (@{keyword "where"} |-- repeat1 term) ["True"]))
+  >> (fn (((((n, st), ps), g), upd), post) => Operation {name = n, state = st, params = ps, pre = g, update = upd, guard = post})
    end;
 
 val parse_zmachine = 
