@@ -6,15 +6,17 @@ begin lit_vars
 
 consts VAL :: "integer set"
 
-schema Buffer_state =
+zstore Buffer_state =
   buf :: "integer list"
-
-record_default Buffer_state
+  where "set buf \<subseteq> VAL"
 
 zoperation Input =
   over Buffer_state
   params v \<in> VAL
   update "[buf \<leadsto> buf @ [v]]"
+
+lemma Input_inv: "Input v preserves Buffer_state_inv"
+  by zpog_full
 
 zoperation Output =
   over Buffer_state
@@ -23,13 +25,24 @@ zoperation Output =
   update "[buf \<leadsto> tl buf]"
   where "v = hd buf"
 
+lemma Output_inv: "Output v preserves Buffer_state_inv"
+  by zpog_full (meson in_mono list.set_sel(2))
+
 zoperation State =
   over Buffer_state
   params st \<in> "{buf}"
 
+lemma State_inv: "State st preserves Buffer_state_inv"
+  by zpog_full
+
 zmachine Buffer =
   init "[buf \<leadsto> []]"
+  invariant "Buffer_state_inv"
   operations Input Output State
+
+lemma Buffer_deadlock_free: "VAL \<noteq> {} \<Longrightarrow> deadlock_free Buffer"
+  unfolding Buffer_def
+  by (deadlock_free invs: Input_inv Output_inv State_inv)
 
 def_consts VAL = "{0,1,2,3}"
 

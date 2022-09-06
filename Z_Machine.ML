@@ -4,7 +4,7 @@ structure Z_Machine = struct
 
 type param = string * string
 datatype operation = Operation of {name: string, state: string, params: param list, pre: string list, update: string, guard: string list}
-datatype zmachine = ZMachine of {name: string, state: string, init: string, operations: string list}
+datatype zmachine = ZMachine of {name: string, state: string, inv: string, init: string, operations: string list}
 
 val SEXP = Const (@{const_name SEXP}, dummyT --> dummyT)
 
@@ -104,7 +104,7 @@ fun read_const_name ctx n =
     Free (n', _) => n' |
     _ => raise Match;
 
-fun zmachine_body_sem n st init ops ctx =
+fun zmachine_body_sem n st init inve ops ctx =
   let open Syntax; open HOLogic; open Proof_Context
       val oplist = 
             mk_list dummyT 
@@ -114,17 +114,18 @@ fun zmachine_body_sem n st init ops ctx =
          , ((Binding.name (n ^ "_def")
            , [Attrib.check_src @{context} (Token.make_src ("code", Position.none) [])])
            , check_term ctx 
-              (const @{const_name "z_machine"} $ Type.constraint (st --> st) init $ oplist))) ctx) end
+              (const @{const_name "z_machine"} $ Type.constraint (st --> st) init $ inve $ oplist))) ctx) end
 
 fun chantype_name n = n ^ "_chan"
 
-fun zmachine_sem (ZMachine {name = n, state = s, init = i, operations = ops}) ctx =
-  let open Syntax; open HOLogic
+fun zmachine_sem (ZMachine {name = n, state = s, init = i, inv = inv, operations = ops}) ctx =
+  let open Syntax; open HOLogic; open Lift_Expr
     val cs = map (fn n => (firstLower n, YXML.content_of (string_of_typ ctx (get_zop_ptype n ctx)))) ops
     val st = read_typ ctx s
+    val inve = mk_lift_expr ctx (parse_term ctx inv)
     val init = parse_term ctx i
   in Channel_Type.compile_chantype (chantype_name n, cs) ctx |>
-     zmachine_body_sem n st init ops end
+     zmachine_body_sem n st init inve ops end
 
 val parse_param = 
   let open Parse in
@@ -147,8 +148,9 @@ val parse_zmachine =
   (name --| @{keyword "="}) --
   (Scan.optional (@{keyword "over"} |-- typ) "_") --
   (@{keyword "init"} |-- term) --
+  (Scan.optional (@{keyword "invariant"} |-- term) "True") --
   (@{keyword "operations"} |-- repeat1 name)
-  >> (fn (((n, st), init), ops) => ZMachine {name = n, state = st, init = init, operations = ops})
+  >> (fn ((((n, st), init), inv), ops) => ZMachine {name = n, state = st, init = init, inv = inv, operations = ops})
   end;
  
 

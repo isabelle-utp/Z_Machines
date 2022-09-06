@@ -2,7 +2,7 @@ theory Z_Machine
   imports Z_Operations "ITree_Simulation.ITree_Simulation" "Z_Toolkit.Z_Toolkit" 
     "HOL-Library.Code_Target_Numeral" "Explorer.Explorer"
   keywords "zmachine" "zoperation" :: "thy_decl_block"
-    and "over" "init" "operations" "params" "pre" "update" "\<in>"
+    and "over" "init" "invariant" "operations" "params" "pre" "update" "\<in>"
 begin
 
 hide_const Map.dom
@@ -76,8 +76,8 @@ lemma wlp_Vis: "wlp (\<lambda> s. Vis (F s)) P = (\<forall> e\<in>dom F. wlp (\<
 definition z_machine_main :: "(('e, 's) htree) list \<Rightarrow> ('e, 's) htree" where
 "z_machine_main Ops = foldr (\<box>) Ops Stop"
 
-definition z_machine :: "('s::default) subst \<Rightarrow> (('e, 's) htree) list \<Rightarrow> 'e process" where
-[code_unfold]: "z_machine Init Ops = process Init (loop (z_machine_main Ops))"
+definition z_machine :: "('s::default) subst \<Rightarrow> ('s \<Rightarrow> bool) \<Rightarrow> (('e, 's) htree) list \<Rightarrow> 'e process" where
+[code_unfold]: "z_machine Init Inv Ops = process Init (loop (z_machine_main Ops))"
 
 (*
 definition z_machine :: "('s::default) subst \<Rightarrow> ('e, 's) htree list \<Rightarrow> 'e process" where
@@ -90,7 +90,7 @@ lemma deadlock_free_z_machine:
     "Init establishes Inv"
     "\<And> E. E\<in>set Events \<Longrightarrow> E preserves Inv"
     "`Inv \<longrightarrow> dfp (foldr (\<box>) Events Stop)`"
-  shows "deadlock_free (z_machine Init Events)"
+  shows "deadlock_free (z_machine Init Inv Events)"
 proof (simp add: z_machine_def z_machine_main_def, rule deadlock_free_processI, rule deadlock_free_init_loop[where P="Inv"], rule assms(1), simp_all)
   from assms(2) show "\<^bold>{Inv\<^bold>} foldr (\<box>) Events Stop \<^bold>{Inv\<^bold>}"
   proof (induct Events)
@@ -105,8 +105,8 @@ proof (simp add: z_machine_def z_machine_main_def, rule deadlock_free_processI, 
     using assms(3) by auto
 qed
 
-method deadlock_free for I :: "'s::default \<Rightarrow> bool" uses invs = 
-  (rule deadlock_free_z_machine[where Inv="I"]
+method deadlock_free uses invs =
+  (rule deadlock_free_z_machine
   ,zpog_full
   ,(simp, safe intro!: hl_zop_event invs)
   ,(simp add: zop_event_is_event_block extchoice_event_block z_defs z_locale_defs wp Bex_Sum_iff; expr_auto))
