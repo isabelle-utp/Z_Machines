@@ -4,6 +4,8 @@ theory DwarfSignal
   imports "Z_Machines.Z_Machine"
 begin                
 
+notation undefined ("???")
+
 subsection \<open> State Space \<close>
 
 enumtype LampId = L1 | L2 | L3
@@ -34,6 +36,8 @@ zstore Dwarf =
   where 
     "(current_state - turn_off) \<union> turn_on = signalLamps desired_proper_state"
     "turn_on \<inter> turn_off = {}"
+
+subsection \<open> Operations and Machine \<close>
 
 zoperation SetNewProperState =
   over Dwarf
@@ -77,10 +81,32 @@ definition Init :: "Dwarf subst" where
 
 zmachine DwarfSignal = 
   init Init
+  invariant Dwarf_inv
   operations SetNewProperState TurnOn TurnOff Shine
 
+subsection \<open> Structural Invariants and Deadlock Freedom \<close>
 
-zexpr NeverShowAll 
+lemma "Init establishes Dwarf_inv"
+  by zpog_full
+
+lemma [hoare_lemmas]: "(SetNewProperState p) preserves Dwarf_inv"
+  by (zpog_full; auto)
+
+lemma [hoare_lemmas]: "TurnOn l preserves Dwarf_inv"
+  by (zpog_full, auto)
+
+lemma [hoare_lemmas]: "TurnOff l preserves Dwarf_inv"
+  by (zpog_full, auto)  
+
+lemma [hoare_lemmas]: "Shine l preserves Dwarf_inv"
+  by (zpog_full; auto)
+
+lemma deadlock_free_DwarfSignal: "deadlock_free DwarfSignal"
+  unfolding DwarfSignal_def by deadlock_free
+
+subsection \<open> Requirements \<close>
+
+zexpr NeverShowAll
   is "current_state \<noteq> {L1, L2, L3}"
 
 zexpr MaxOneLampChange
@@ -107,13 +133,6 @@ zmachine DwarfSignalTest =
 
 animate DwarfSignalTest
 
-
-lemma "Init establishes Dwarf_inv"
-  by zpog_full
-
-lemma "(SetNewProperState p) preserves Dwarf_inv"
-  by (zpog_full; auto)
-
 lemma "(SetNewProperState p) preserves NeverShowAll"
   by zpog_full
 
@@ -125,10 +144,9 @@ lemma "(SetNewProperState p) preserves ForbidStopToDrive"
   quickcheck
   oops
 
-lemma "TurnOn l preserves Dwarf_inv"
-  by (zpog_full, auto)
-
-lemma "TurnOff l preserves Dwarf_inv"
-  by (zpog_full, auto)  
+lemma "TurnOn l preserves NeverShowAll"
+  apply zpog_full
+  quickcheck
+  oops
 
 end
