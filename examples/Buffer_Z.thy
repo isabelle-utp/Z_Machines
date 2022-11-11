@@ -15,7 +15,7 @@ zoperation Input =
   params v \<in> VAL
   update "[buf \<leadsto> buf @ [v]]"
 
-lemma Input_inv: "Input v preserves Buffer_state_inv"
+lemma Input_inv [hoare_lemmas]: "Input v preserves Buffer_state_inv"
   by zpog_full
 
 zoperation Output =
@@ -25,14 +25,14 @@ zoperation Output =
   update "[buf \<leadsto> tl buf]"
   where "v = hd buf"
 
-lemma Output_inv: "Output v preserves Buffer_state_inv"
+lemma Output_inv [hoare_lemmas]: "Output v preserves Buffer_state_inv"
   by zpog_full (meson in_mono list.set_sel(2))
 
 zoperation State =
   over Buffer_state
   params st \<in> "{buf}"
 
-lemma State_inv: "State st preserves Buffer_state_inv"
+lemma State_inv [hoare_lemmas]: "State st preserves Buffer_state_inv"
   by zpog_full
 
 zmachine Buffer =
@@ -42,7 +42,7 @@ zmachine Buffer =
 
 lemma Buffer_deadlock_free: "VAL \<noteq> {} \<Longrightarrow> deadlock_free Buffer"
   unfolding Buffer_def
-  by (deadlock_free invs: Input_inv Output_inv State_inv)
+  by deadlock_free
 
 def_consts VAL = "{0,1,2,3}"
 

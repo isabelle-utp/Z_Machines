@@ -27,8 +27,8 @@ definition io_operation :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Righta
 method z_wlp uses add = (hoare_wlp_auto add: z_defs add)
 method z_wlp_auto uses add = (hoare_wlp_auto add: z_defs z_locale_defs add)
 
-method zpog uses add = 
-  (hoare_wlp add: z_defs add; 
+method zpog uses add =
+  (hoare_wlp add: z_defs add; (clarify)?; 
    expr_taut; 
    ((clarsimp del: notI)?; 
     (((erule conjE | rule conjI | erule disjE | rule impI); (clarsimp del: notI)?)+)?))

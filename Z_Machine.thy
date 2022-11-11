@@ -108,7 +108,7 @@ qed
 method deadlock_free uses invs =
   (rule deadlock_free_z_machine
   ,zpog_full
-  ,(simp, safe intro!: hl_zop_event invs)
+  ,(simp, auto intro!: hl_zop_event hoare_lemmas invs)
   ,(simp add: zop_event_is_event_block extchoice_event_block z_defs z_locale_defs wp Bex_Sum_iff; expr_auto))
 
 ML_file \<open>Z_Machine.ML\<close>
