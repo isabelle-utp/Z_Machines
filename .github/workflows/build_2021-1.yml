@@ -10,3 +10,5 @@ jobs:
           isabelle-version: '2021-1'
           custom-isabelle-url: 'https://github.com/lexbailey/itrees_isabelle_fork/archive/refs/heads/itrees_utp.zip'
           depends: 'https://github.com/isabelle-utp/interaction-trees.git@master'
+          report_url: 'https://isabelle-utp-ci-dashboard.link/submit_job_log'
+          report_secret: ${{ secrets.DashboardReportKey }}
