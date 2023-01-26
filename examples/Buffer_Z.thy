@@ -41,7 +41,6 @@ zmachine Buffer =
   operations Input Output State
 
 lemma Buffer_deadlock_free: "VAL \<noteq> {} \<Longrightarrow> deadlock_free Buffer"
-  unfolding Buffer_def
   by deadlock_free
 
 def_consts VAL = "{0,1,2,3}"

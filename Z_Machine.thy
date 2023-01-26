@@ -5,6 +5,8 @@ theory Z_Machine
     and "over" "init" "invariant" "operations" "params" "pre" "update" "\<in>"
 begin
 
+named_theorems z_machine_defs
+
 hide_const Map.dom
 hide_const Map.ran
 
@@ -105,11 +107,17 @@ proof (simp add: z_machine_def z_machine_main_def, rule deadlock_free_processI, 
     using assms(3) by auto
 qed
 
+method deadlock_free_invs uses invs =
+  ((simp add: z_machine_defs)?
+  ,rule deadlock_free_z_machine
+  ,(zpog_full; auto)[1]
+  ,(auto intro!: hl_zop_event hoare_lemmas invs)[1])
+
 method deadlock_free uses invs =
-  (rule deadlock_free_z_machine
-  ,zpog_full
-  ,(simp, auto intro!: hl_zop_event hoare_lemmas invs)
-  ,(simp add: zop_event_is_event_block extchoice_event_block z_defs z_locale_defs wp Bex_Sum_iff; expr_auto))
+  (deadlock_free_invs invs: invs,
+   (simp add: zop_event_is_event_block extchoice_event_block z_defs z_locale_defs wp Bex_Sum_iff;
+    expr_simp add: split_sum_all split_sum_ex;
+    ((rule conjI allI impI | erule conjE disjE exE)+; rename_alpha_vars?)?))
 
 ML_file \<open>Z_Machine.ML\<close>
 

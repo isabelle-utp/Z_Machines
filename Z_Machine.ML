@@ -48,7 +48,7 @@ fun mk_zop (Operation {name = n, state = s, params = ps, pre = pre, update = upd
                 (mk_conj (const @{const_name Set.member} $ ppat $ (pset $ Bound 0)
                          , mk_lift_expr ctx (foldr1 mk_conj ((map (parse_term ctx) g))) $ Bound 0)) 
 
-      val pupd = Type.constraint (st --> st) (parse_term ctx upd)
+      (* val pupd = Type.constraint (st --> st) (parse_term ctx upd)
 
       val code_unfold = Attrib.check_src @{context} (Token.make_src ("code_unfold", Position.none) [])
       val z_defs = Attrib.check_src @{context} (Token.make_src ("z_defs", Position.none) [])
@@ -57,11 +57,12 @@ fun mk_zop (Operation {name = n, state = s, params = ps, pre = pre, update = upd
          , ((Binding.name (n ^ "_def")
            , [code_unfold, z_defs])
            , check_term ctx term))
+*)
   in (* Generate the type of the operation (i.e. the set of possible parameter values *)
      snd (Local_Theory.define 
            ((Binding.name (zop_type n), NoSyn)
          , ((Binding.name (zop_type n ^ "_def")
-           , [code_unfold, z_defs])
+           , @{attributes [code_unfold, z_defs]})
            , check_term ctx set)) ctx) |>
      (
      (*
@@ -81,7 +82,7 @@ fun mk_zop (Operation {name = n, state = s, params = ps, pre = pre, update = upd
            (* It would be better if we could mark these as "code" rather than "code_unfold" to retain
               the structure in the language target. For now, code_unfold is required to ensure that
               the semantics of enumerated inputs is correctly calculated *)
-           , [code_unfold, z_defs])
+           , @{attributes [code_unfold, z_defs]})
            , check_term ctx ( 
               (Const (@{const_name "mk_zop"}, (parm --> st --> dummyT) --> dummyT)
                 $ tupled_lambda ppat (SEXP $ ppre))
@@ -112,7 +113,7 @@ fun zmachine_body_sem n st init inve ops ctx =
   in snd (Local_Theory.define 
            ((Binding.name n, NoSyn)
          , ((Binding.name (n ^ "_def")
-           , [Attrib.check_src @{context} (Token.make_src ("code", Position.none) [])])
+           , @{attributes [code, z_machine_defs]})
            , check_term ctx 
               (const @{const_name "z_machine"} $ Type.constraint (st --> st) init $ inve $ oplist))) ctx) end
 
