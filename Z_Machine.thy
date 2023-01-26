@@ -161,4 +161,6 @@ text \<open> The next line allows us to create lists of characters from literals
 
 declare [[coercion String.explode]]
 
+unbundle Expression_Syntax
+
 end
