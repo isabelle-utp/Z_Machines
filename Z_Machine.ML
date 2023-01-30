@@ -22,6 +22,28 @@ fun params_set pss =
 fun firstLower s =
   case String.explode s of [] => "" | c :: cs => String.implode (Char.toLower c :: cs);
 
+fun get_op_chan ctx n = 
+  Proof_Context.read_const 
+    {proper = true, strict = false} 
+    ctx 
+    (firstLower n ^ "_C");
+
+fun mk_show_eq n ctx = 
+  let open Syntax; open HOLogic; val show = const @{const_name show} in
+    Syntax.check_term ctx (
+      mk_Trueprop (eq_const dummyT $ (show $ (get_op_chan ctx n $ free "x"))
+                                   $ (const @{const_name plus} $ mk_literal (Long_Name.base_name n ^ " ") $ (show $ free "x")))
+    )
+  end; 
+
+fun mk_show_fun typ ns ctx =
+  let val tname = Long_Name.base_name (fst (dest_Type typ)) in
+  Function_Fun.add_fun 
+    [(Binding.name ("show_" ^ tname), SOME (typ --> @{typ "String.literal"}), NoSyn)]
+    (map (fn n => ((Binding.empty_atts, mk_show_eq n ctx), [], [])) ns)
+    (Function_Fun.fun_config) ctx
+  end
+
 fun zop_type n = n ^ "_type"
 
 fun zop_pre n = n ^ "_pre"
