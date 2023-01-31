@@ -44,30 +44,7 @@ zmachine Incubator =
   init "[temp \<leadsto> 20]"
   operations Increment Decrement GetTemp
 
-instantiation Incubator_chan :: "show"
-begin
-
-fun show_Incubator_chan :: "Incubator_chan \<Rightarrow> String.literal" where
-"show_Incubator_chan (increment_C x) = STR ''Increment '' + show x" |
-"show_Incubator_chan (decrement_C x) = STR ''Decrement '' + show x" |
-"show_Incubator_chan (getTemp_C x) = STR ''GetTemp '' + show x"
-
-instance ..
-
-end
-
-definition z_machine_main2 :: "(('e, 's) htree) list \<Rightarrow> ('e::show, 's) htree" where
-"z_machine_main2 Ops = foldr (\<box>) Ops Stop"
-
-definition z_machine2 :: "('s::default) subst \<Rightarrow> ('s \<Rightarrow> bool) \<Rightarrow> (('e::show, 's) htree) list \<Rightarrow> 'e process" where
-[code_unfold]: "z_machine2 Init Inv Ops = process Init (loop (z_machine_main2 Ops))"
-
-definition "Incubator2 =
-z_machine2 [temp \<leadsto> 20] (\<lambda>\<s>. True)
- [zop_event increment Increment_type Increment, zop_event decrement Decrement_type Decrement,
-  zop_event getTemp GetTemp_type GetTemp]"
-
-animate Incubator2
+animate Incubator
 
 end
   
