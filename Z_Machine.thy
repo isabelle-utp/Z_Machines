@@ -119,6 +119,11 @@ method deadlock_free uses invs =
     expr_simp add: split_sum_all split_sum_ex;
     ((rule conjI allI impI | erule conjE disjE exE)+; rename_alpha_vars?)?))
 
+text \<open> Function to show the channel of an operation \<close>
+
+definition show_op_channel :: "String.literal \<Rightarrow> String.literal \<Rightarrow> String.literal" where
+[code_unfold]: "show_op_channel c p = (if hd (String.explode p) = CHR ''('' then c + p else c + STR ''('' + p + STR '')'')"
+
 ML_file \<open>Z_Machine.ML\<close>
 
 ML \<open>
