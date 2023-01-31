@@ -1,6 +1,6 @@
 theory Z_Machine
   imports Z_Operations "ITree_Simulation.ITree_Simulation" "Z_Toolkit.Z_Toolkit" 
-    "HOL-Library.Code_Target_Numeral" "Explorer.Explorer" "Haskell_Show"
+    "HOL-Library.Code_Target_Numeral" "Explorer.Explorer"
   keywords "zmachine" "zoperation" :: "thy_decl_block"
     and "over" "init" "invariant" "operations" "params" "pre" "update" "\<in>"
 begin
