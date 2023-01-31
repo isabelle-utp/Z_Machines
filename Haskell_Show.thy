@@ -4,11 +4,19 @@ theory Haskell_Show
   imports "HOL-Library.Code_Target_Int"
 begin
 
+text \<open> The aim of this theory is support code generation of serialisers for datatypes using the
+  Haskell show class. We take inspiration from \<^url>\<open>https://www.isa-afp.org/entries/Show.html\<close>, but
+  we are more interested in code generation than being able to derive the show function for 
+  any algebraic datatype. Sometimes we give actual instance that can reasoned about in Isabelle,
+  but mostly opaque types and code printing to Haskell instance is sufficient. \<close>
+
+subsection \<open> Show class \<close>
+
 text \<open> The following class should correspond to the Haskell type class Show, but currently it
        has only part of the signature. \<close>
 
 class "show" =
-  fixes "show" :: "'a \<Rightarrow> String.literal"
+  fixes "show" :: "'a \<Rightarrow> String.literal" \<comment> \<open> We use @{typ String.literal} for code generation \<close>
 
 text \<open> We set up code printing so that this class, and the constants therein, are mapped to the
   Haskell Show class. \<close>
@@ -17,18 +25,9 @@ code_printing
   type_class "show" \<rightharpoonup> (Haskell) "Prelude.Show"
 | constant "show" \<rightharpoonup> (Haskell) "Prelude.show"
 
+subsection \<open> Instances \<close>
 
-instantiation unit :: "show"
-begin
-
-fun show_unit :: "unit \<Rightarrow> String.literal" where
-"show_unit () = STR ''()''"
-
-instance ..
-
-end
-
-text \<open> We create an instance for bool, that generates an Isabelle function \<close>
+text \<open> We create an instance for bool, that generates an Isabelle function. \<close>
 
 instantiation bool :: "show"
 begin
@@ -47,6 +46,16 @@ text \<open> We map the instance for bool to the built-in Haskell show, and have
 code_printing
   constant "show_bool_inst.show_bool" \<rightharpoonup> (Haskell) "Prelude.show"
 | class_instance "bool" :: "show" \<rightharpoonup> (Haskell) -
+
+instantiation unit :: "show"
+begin
+
+fun show_unit :: "unit \<Rightarrow> String.literal" where
+"show_unit () = STR ''()''"
+
+instance ..
+
+end
 
 text \<open> Actually, we don't really need to create the show function if all we're interested in is
   code generation. Here, for the @{typ integer} instance, we omit the definition. This is

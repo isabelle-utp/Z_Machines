@@ -32,21 +32,21 @@ fun mk_show_eq n ctx =
   let open Syntax; open HOLogic; val show = const @{const_name show} in
     Syntax.check_term ctx (
       mk_Trueprop (eq_const dummyT $ (show $ (get_op_chan ctx n $ free "x"))
-                                   $ (const @{const_name plus} $ mk_literal (Long_Name.base_name n ^ " ") $ (show $ free "x")))
+                                   $ (const @{const_name show_op_channel} $ mk_literal (Long_Name.base_name n) $ (show $ free "x")))
     )
   end; 
 
-fun mk_show_fun tname ns ctx =
+fun mk_show_fun tname ops ctx =
   let val typ = Syntax.read_typ ctx tname in
   Function_Fun.add_fun 
     [(Binding.name ("show_" ^ tname), SOME (typ --> @{typ "String.literal"}), NoSyn)]
-    (map (fn n => ((Binding.empty_atts, mk_show_eq n ctx), [], [])) ns)
+    (map (fn n => ((Binding.empty_atts, mk_show_eq n ctx), [], [])) ops)
     (Function_Fun.fun_config) ctx
   end
 
-fun mk_show_inst tname ns thy =
+fun mk_show_inst tname ops thy =
   let val ctx0 = Class.instantiation_cmd ([tname], [], "show") thy;
-      val ctx1 = mk_show_fun tname ns ctx0;
+      val ctx1 = mk_show_fun tname ops ctx0;
   in Class.prove_instantiation_exit (fn _ => Class.intro_classes_tac ctx1 []) ctx1
   end
 
@@ -137,7 +137,7 @@ fun zmachine_body_sem n st init inve ops ctx =
   let open Syntax; open HOLogic; open Proof_Context
       val oplist = 
             mk_list dummyT 
-              (map (fn n => const @{const_name zop_event} $ read_const (firstLower n) $ const (read_const_name ctx (zop_type n)) $ const (read_const_name ctx n)) ops)
+              (map (fn n => const @{const_name zop_event} $ read_const {proper = false, strict = false} ctx (firstLower n) $ const (read_const_name ctx (zop_type n)) $ const (read_const_name ctx n)) ops)
   in snd (Local_Theory.define 
            ((Binding.name n, NoSyn)
          , ((Binding.name (n ^ "_def")
