@@ -122,7 +122,7 @@ method deadlock_free uses invs =
 text \<open> Function to show the channel of an operation \<close>
 
 definition show_op_channel :: "String.literal \<Rightarrow> String.literal \<Rightarrow> String.literal" where
-[code_unfold]: "show_op_channel c p = (if hd (String.explode p) = CHR ''('' then c + p else c + STR ''('' + p + STR '')'')"
+[code_unfold]: "show_op_channel c p = c + STR '' '' + p"
 
 ML_file \<open>Z_Machine.ML\<close>
 
