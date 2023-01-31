@@ -26,7 +26,7 @@ fun get_op_chan ctx n =
   Proof_Context.read_const 
     {proper = true, strict = false} 
     ctx 
-    (firstLower n ^ "_C");
+    (firstLower n ^ Channel_Type.ctor_suffix);
 
 fun mk_show_eq n ctx = 
   let open Syntax; open HOLogic; val show = const @{const_name show} in
@@ -36,12 +36,18 @@ fun mk_show_eq n ctx =
     )
   end; 
 
-fun mk_show_fun typ ns ctx =
-  let val tname = Long_Name.base_name (fst (dest_Type typ)) in
+fun mk_show_fun tname ns ctx =
+  let val typ = Syntax.read_typ ctx tname in
   Function_Fun.add_fun 
     [(Binding.name ("show_" ^ tname), SOME (typ --> @{typ "String.literal"}), NoSyn)]
     (map (fn n => ((Binding.empty_atts, mk_show_eq n ctx), [], [])) ns)
     (Function_Fun.fun_config) ctx
+  end
+
+fun mk_show_inst tname ns thy =
+  let val ctx0 = Class.instantiation_cmd ([tname], [], "show") thy;
+      val ctx1 = mk_show_fun tname ns ctx0;
+  in Class.prove_instantiation_exit (fn _ => Class.intro_classes_tac ctx1 []) ctx1
   end
 
 fun zop_type n = n ^ "_type"
@@ -131,7 +137,7 @@ fun zmachine_body_sem n st init inve ops ctx =
   let open Syntax; open HOLogic; open Proof_Context
       val oplist = 
             mk_list dummyT 
-              (map (fn n => const @{const_name zop_event} $ free (firstLower n) $ const (read_const_name ctx (zop_type n)) $ const (read_const_name ctx n)) ops)
+              (map (fn n => const @{const_name zop_event} $ read_const (firstLower n) $ const (read_const_name ctx (zop_type n)) $ const (read_const_name ctx n)) ops)
   in snd (Local_Theory.define 
            ((Binding.name n, NoSyn)
          , ((Binding.name (n ^ "_def")
@@ -148,7 +154,9 @@ fun zmachine_sem (ZMachine {name = n, state = s, init = i, inv = inv, operations
     val inve = mk_lift_expr ctx (parse_term ctx inv)
     val init = parse_term ctx i
   in Channel_Type.compile_chantype (chantype_name n, cs) ctx |>
-     zmachine_body_sem n st init inve ops end
+     Named_Target.theory_init o mk_show_inst (chantype_name n) ops o Local_Theory.exit_global |>
+     zmachine_body_sem n st init inve ops
+  end
 
 val parse_param = 
   let open Parse in
