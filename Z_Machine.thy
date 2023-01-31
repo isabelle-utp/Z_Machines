@@ -75,10 +75,10 @@ lemma wlp_Vis: "wlp (\<lambda> s. Vis (F s)) P = (\<forall> e\<in>dom F. wlp (\<
   apply (metis imageE pran_pdom)
   done
 
-definition z_machine_main :: "(('e, 's) htree) list \<Rightarrow> ('e, 's) htree" where
+definition z_machine_main :: "(('e::show, 's) htree) list \<Rightarrow> ('e, 's) htree" where
 "z_machine_main Ops = foldr (\<box>) Ops Stop"
 
-definition z_machine :: "('s::default) subst \<Rightarrow> ('s \<Rightarrow> bool) \<Rightarrow> (('e, 's) htree) list \<Rightarrow> 'e process" where
+definition z_machine :: "('s::default) subst \<Rightarrow> ('s \<Rightarrow> bool) \<Rightarrow> (('e::show, 's) htree) list \<Rightarrow> 'e process" where
 [code_unfold]: "z_machine Init Inv Ops = process Init (loop (z_machine_main Ops))"
 
 (*
