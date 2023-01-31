@@ -68,8 +68,6 @@ code_printing
   constant "show_integer_inst.show_integer" \<rightharpoonup> (Haskell) "Prelude.show"
 | class_instance "integer" :: "show" \<rightharpoonup> (Haskell) -
 
-
-
 text \<open> For @{typ int}, we are effectively dealing with a packaged version of @{typ integer} in
   the code generation set up. So, we simply define show in terms of the "underlying" integer
   using @{const integer_of_int}. \<close>
@@ -90,27 +88,41 @@ text \<open> As a result, we can prove a code equation that will mean that our s
 lemma show_int_of_integer [code]: "show (int_of_integer x) = show x" 
   by (simp add: show_int_def)
 
-text \<open> Now we have a small example data type, and a show instance, which we will generate. \<close>
-
-datatype D = MyData bool | MyData2 int
-
-instantiation D :: "show"
+instantiation String.literal :: "show"
 begin
 
-fun show_D :: "D \<Rightarrow> String.literal" where
-"show_D (MyData x) = STR ''MyData '' + show x" |
-"show_D (MyData2 x) = STR ''MyData2 '' + show x"
+definition show_literal :: "String.literal \<Rightarrow> String.literal" where
+"show_literal x = STR ''\"'' + x + STR ''\"''"
 
 instance ..
 
 end
 
-definition "hello x = show x"
+code_printing
+  constant "show_literal_inst.show_literal" \<rightharpoonup> (Haskell) "Prelude.show"
+| class_instance "String.literal" :: "show" \<rightharpoonup> (Haskell) -
 
-definition "hello2 = hello (MyData True)"
 
-definition "hello3 = hello (1 :: integer)"
+instantiation prod :: ("show", "show") "show"
+begin
 
-export_code "hello" "hello2" hello3 in Haskell 
+instance ..
+
+end
+
+code_printing
+  constant "show_prod_inst.show_prod" \<rightharpoonup> (Haskell) "Prelude.show"
+| class_instance "prod" :: "show" \<rightharpoonup> (Haskell) -
+
+instantiation list :: ("show") "show"
+begin
+
+instance ..
+
+end
+
+code_printing
+  constant "show_list_inst.show_list" \<rightharpoonup> (Haskell) "Prelude.show"
+| class_instance "list" :: "show" \<rightharpoonup> (Haskell) -
 
 end
