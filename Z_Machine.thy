@@ -76,7 +76,7 @@ lemma wlp_Vis: "wlp (\<lambda> s. Vis (F s)) P = (\<forall> e\<in>dom F. wlp (\<
   done
 
 definition z_machine_main :: "(('e::show, 's) htree) list \<Rightarrow> ('e, 's) htree" where
-"z_machine_main Ops = foldr (\<box>) Ops Stop"
+"z_machine_main Ops = (let x = IntV 0 in foldr (\<box>) Ops Stop)"
 
 definition z_machine :: "('s::default) subst \<Rightarrow> ('s \<Rightarrow> bool) \<Rightarrow> (('e::show, 's) htree) list \<Rightarrow> 'e process" where
 [code_unfold]: "z_machine Init Inv Ops = process Init (loop (z_machine_main Ops))"
@@ -134,7 +134,7 @@ Outer_Syntax.command @{command_keyword zoperation} "define a Z operation"
     (Z_Machine.parse_operation >> (Toplevel.local_theory NONE NONE o Z_Machine.mk_zop));
 \<close>
 
-code_datatype pfun_of_alist pfun_of_map pfun_of_pinj pfun_entries
+code_datatype pfun_of_alist pfun_of_map pfun_of_ufun pfun_of_pinj pfun_entries
 
 setup \<open> Explorer_Lib.switch_to_quotes \<close>
 
