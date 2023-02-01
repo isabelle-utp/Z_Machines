@@ -168,4 +168,42 @@ declare [[coercion String.explode]]
 
 unbundle Expression_Syntax
 
+text \<open> We need an instance of the "Show" class for sets. Due to the way the code generator works,
+  we need to replace the standard generated code datatype "Set" without our own, and derive
+  a custom instance of show. The code below achieve this. \<close>
+
+instantiation set :: ("show") "show"
+begin
+
+text \<open> The following strange definition of show for sets simply ensures that the code generator
+  make a show instance for the element type. Without this definition, no code for this is 
+  generated. The definition of show on the Haskell side is then replaced by the following
+  code printing commands, so this code does not actually make it to Haskell. \<close>
+
+definition show_set :: "'a set \<Rightarrow> String.literal" where
+"show_set A = (let B = show ` A in '''')"
+
+instance ..
+
+end
+
+code_printing
+  code_module ListSet \<rightharpoonup> (Haskell)
+\<open>module ListSet(Set(..)) where {
+ import Prelude;
+ import Data.List;
+ data Set a = Set [a] | Coset [a];
+ instance Show a => Show (Set a) where
+ show (Set xs) = "{" ++ concat (intersperse "," (map show xs)) ++ "}"
+ show (Coset xs) = "-" ++ show (Set xs);
+ }
+\<close> for type_constructor set
+| type_constructor "set" \<rightharpoonup> (Haskell) "(ListSet.Set (_))"
+| constant "List.set" \<rightharpoonup> (Haskell) "ListSet.Set"
+| constant "List.coset" \<rightharpoonup> (Haskell) "ListSet.Coset"
+| constant "show_set_inst.show_set" \<rightharpoonup> (Haskell) "Prelude.show"
+| class_instance "set" :: "show" \<rightharpoonup> (Haskell) -
+
+code_reserved Haskell List_Set
+
 end
