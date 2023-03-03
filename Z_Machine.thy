@@ -121,8 +121,8 @@ method deadlock_free uses invs =
 
 text \<open> Function to show the channel of an operation \<close>
 
-definition show_op_channel :: "String.literal \<Rightarrow> String.literal \<Rightarrow> String.literal" where
-[code_unfold]: "show_op_channel c p = c + STR '' '' + p"
+definition show_op_channel :: "String.literal \<Rightarrow> 'a::show \<Rightarrow> String.literal" where
+"show_op_channel c p = c + STR '' '' + show p"
 
 ML_file \<open>Z_Machine.ML\<close>
 
@@ -134,7 +134,7 @@ Outer_Syntax.command @{command_keyword zoperation} "define a Z operation"
     (Z_Machine.parse_operation >> (Toplevel.local_theory NONE NONE o Z_Machine.mk_zop));
 \<close>
 
-code_datatype pfun_of_alist pfun_of_map pfun_of_ufun pfun_of_pinj pfun_entries
+code_datatype pfun_of_alist pfun_of_map pfun_of_ufun pfun_of_chfuns pfun_of_pinj pfun_entries
 
 setup \<open> Explorer_Lib.switch_to_quotes \<close>
 
