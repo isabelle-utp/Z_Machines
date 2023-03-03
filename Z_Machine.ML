@@ -50,6 +50,27 @@ fun mk_show_inst tname ops thy =
   in Class.prove_instantiation_exit (fn _ => Class.intro_classes_tac ctx1 []) ctx1
   end
 
+fun mk_field_pair n =
+  let open HOLogic; open Syntax
+  in mk_prod (mk_literal (Long_Name.base_name n), const @{const_name show} $ (const n $ free "x"))
+  end;
+
+fun mk_field_assocs ns =
+  let open HOLogic
+  in mk_list (mk_prodT (literalT, literalT)) (map (fn n => mk_field_pair n) ns)
+  end;
+
+fun mk_record_show_eq rt ctx = 
+  let open Syntax; open HOLogic; 
+      val show = const @{const_name show}; 
+      val info = Record.the_info (Local_Theory.exit_global ctx) rt
+      val ns = map fst (#fields info) in
+    Syntax.check_term ctx (
+      mk_Trueprop (eq_const dummyT $ (show $ free "x")
+                                   $ (@{const show_fields} $ mk_field_assocs ns $ (mk_literal "()")
+    )))
+  end; 
+
 fun zop_type n = n ^ "_type"
 
 fun zop_pre n = n ^ "_pre"
