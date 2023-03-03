@@ -198,7 +198,7 @@ code_printing
  show (Coset xs) = "-" ++ show (Set xs);
  }
 \<close> for type_constructor set
-| type_constructor "set" \<rightharpoonup> (Haskell) "(ListSet.Set (_))"
+| type_constructor "set" \<rightharpoonup> (Haskell) "(ListSet.Set '(_'))"
 | constant "List.set" \<rightharpoonup> (Haskell) "ListSet.Set"
 | constant "List.coset" \<rightharpoonup> (Haskell) "ListSet.Coset"
 | constant "show_set_inst.show_set" \<rightharpoonup> (Haskell) "Prelude.show"
