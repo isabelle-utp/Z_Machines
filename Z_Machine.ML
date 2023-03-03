@@ -32,7 +32,7 @@ fun mk_show_eq n ctx =
   let open Syntax; open HOLogic; val show = const @{const_name show} in
     Syntax.check_term ctx (
       mk_Trueprop (eq_const dummyT $ (show $ (get_op_chan ctx n $ free "x"))
-                                   $ (const @{const_name show_op_channel} $ mk_literal (Long_Name.base_name n) $ (show $ free "x")))
+                                   $ (const @{const_name show_op_channel} $ mk_literal (Long_Name.base_name n) $ (free "x")))
     )
   end; 
 
