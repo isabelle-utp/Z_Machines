@@ -28,7 +28,7 @@ fun get_op_chan ctx n =
     ctx 
     (firstLower n ^ Channel_Type.ctor_suffix);
 
-fun mk_show_eq n ctx = 
+fun mk_chan_show_eq n ctx = 
   let open Syntax; open HOLogic; val show = const @{const_name show} in
     Syntax.check_term ctx (
       mk_Trueprop (eq_const dummyT $ (show $ (get_op_chan ctx n $ free "x"))
@@ -36,40 +36,19 @@ fun mk_show_eq n ctx =
     )
   end; 
 
-fun mk_show_fun tname ops ctx =
+fun mk_chan_show_fun tname ops ctx =
   let val typ = Syntax.read_typ ctx tname in
   Function_Fun.add_fun 
     [(Binding.name ("show_" ^ tname), SOME (typ --> @{typ "String.literal"}), NoSyn)]
-    (map (fn n => ((Binding.empty_atts, mk_show_eq n ctx), [], [])) ops)
+    (map (fn n => ((Binding.empty_atts, mk_chan_show_eq n ctx), [], [])) ops)
     (Function_Fun.fun_config) ctx
   end
 
-fun mk_show_inst tname ops thy =
+fun mk_chan_show_inst tname ops thy =
   let val ctx0 = Class.instantiation_cmd ([tname], [], "show") thy;
-      val ctx1 = mk_show_fun tname ops ctx0;
+      val ctx1 = mk_chan_show_fun tname ops ctx0;
   in Class.prove_instantiation_exit (fn _ => Class.intro_classes_tac ctx1 []) ctx1
   end
-
-fun mk_field_pair n =
-  let open HOLogic; open Syntax
-  in mk_prod (mk_literal (Long_Name.base_name n), const @{const_name show} $ (const n $ free "x"))
-  end;
-
-fun mk_field_assocs ns =
-  let open HOLogic
-  in mk_list (mk_prodT (literalT, literalT)) (map (fn n => mk_field_pair n) ns)
-  end;
-
-fun mk_record_show_eq rt ctx = 
-  let open Syntax; open HOLogic; 
-      val show = const @{const_name show}; 
-      val info = Record.the_info (Local_Theory.exit_global ctx) rt
-      val ns = map fst (#fields info) in
-    Syntax.check_term ctx (
-      mk_Trueprop (eq_const dummyT $ (show $ free "x")
-                                   $ (@{const show_fields} $ mk_field_assocs ns $ (mk_literal "()")
-    )))
-  end; 
 
 fun zop_type n = n ^ "_type"
 
@@ -175,7 +154,7 @@ fun zmachine_sem (ZMachine {name = n, state = s, init = i, inv = inv, operations
     val inve = mk_lift_expr ctx (parse_term ctx inv)
     val init = parse_term ctx i
   in Channel_Type.compile_chantype (chantype_name n, cs) ctx |>
-     Named_Target.theory_init o mk_show_inst (chantype_name n) ops o Local_Theory.exit_global |>
+     Named_Target.theory_init o mk_chan_show_inst (chantype_name n) ops o Local_Theory.exit_global |>
      zmachine_body_sem n st init inve ops
   end
 
