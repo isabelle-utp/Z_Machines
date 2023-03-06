@@ -1,6 +1,6 @@
 theory Z_Machine
   imports Z_Operations "ITree_Simulation.ITree_Simulation" "Z_Toolkit.Z_Toolkit" 
-    "HOL-Library.Code_Target_Numeral" "Explorer.Explorer"
+    "HOL-Library.Code_Target_Numeral" "Explorer.Explorer" Show_Record
   keywords "zmachine" "zoperation" :: "thy_decl_block"
     and "over" "init" "invariant" "operations" "params" "pre" "update" "\<in>"
 begin
@@ -123,20 +123,7 @@ text \<open> Function to show the channel of an operation \<close>
 
 definition show_op_channel :: "String.literal \<Rightarrow> 'a::show \<Rightarrow> String.literal" where
 "show_op_channel c p = c + STR '' '' + show p"
-
-fun intersperse :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-"intersperse x [] = []" | 
-"intersperse x [y] = [y]" |
-"intersperse x (y # ys) = y # x # intersperse x ys"
-
-definition show_fields :: "(String.literal \<times> String.literal) list \<Rightarrow> String.literal \<Rightarrow> String.literal"
-  where "show_fields flds moref = 
-           (let field_asgns = map (\<lambda> (fn, fv). fn + STR '' = '' + fv) flds
-            in STR ''{'' 
-               + fold (+) (intersperse STR '', '' field_asgns) STR '''' 
-               + (if moref = STR ''()'' then STR '''' else STR '', '' + moref)
-               + STR ''}'')" 
-
+                
 ML_file \<open>Z_Machine.ML\<close>
 
 ML \<open>
