@@ -6,17 +6,6 @@ enumtype Player = one | two | three | four | five | six
 
 enumtype Colour = blue | pink | yellow | brown | green | orange
 
-declare UNIV_enum [code_unfold]
-
-declare enum_Colour [code_unfold]
-declare enum_Player [code_unfold]
-
-definition Colour :: "Colour set" where
-"Colour = UNIV"
-
-definition Player :: "Player set" where
-"Player = UNIV"
-
 zstore LocalScore =
   s :: "Colour set"
 
