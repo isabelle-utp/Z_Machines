@@ -3,7 +3,13 @@
 structure Z_Machine = struct
 
 type param = string * string
-datatype operation = Operation of {name: string, state: string, params: param list, pre: string list, update: string, guard: string list}
+
+datatype operation_body =
+  OperDefn of {params: param list, pre: string list, update: string, guard: string list} |
+  OperProm of {promop: string, plens: string}
+
+datatype operation = 
+  Operation of {name: string, state: string, body: operation_body}
 datatype zmachine = ZMachine of {name: string, state: string, inv: string, init: string, operations: string list}
 
 val SEXP = Const (@{const_name SEXP}, dummyT --> dummyT)
@@ -60,7 +66,7 @@ fun zop_update n = n ^ "_update"
 
 (* FIXME: Guard ~> Precondition, Postcondition ~> Guard *)
 
-fun mk_zop (Operation {name = n, state = s, params = ps, pre = pre, update = upd, guard = g}) ctx =
+fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = pre, update = upd, guard = g}}) ctx =
   let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
       val pss = (map (fn (p, t) => (p, lift_expr ctx ((parse_term ctx t)))) ps)
       val pset = params_set (map snd pss)
@@ -120,6 +126,29 @@ fun mk_zop (Operation {name = n, state = s, params = ps, pre = pre, update = upd
                 $ free (zop_update n)
                 $ free (zop_guard n) *)
                 ))))
+  end |
+mk_zop (Operation {name = n, state = s, body = OperProm {promop = opr, plens = lens}}) ctx =
+  let open Syntax; open Lift_Expr
+      val opr' = read_term ctx opr; 
+      val pn = fst (dest_Const opr');
+      val opr_type = const (pn ^ "_type"); 
+      val lens' = read_term ctx lens 
+      val set = check_term ctx (const @{const_name "promoted_type"} $ lens' $ const @{const_name collection_lens} $ opr_type)
+  in
+      snd (Local_Theory.define 
+           ((Binding.name (zop_type n), NoSyn)
+         , ((Binding.name (zop_type n ^ "_def")
+           , @{attributes [code, z_defs]})
+           , check_term ctx set)) ctx) |>
+      snd o Local_Theory.define ((Binding.name n, NoSyn)
+         , ((Binding.name (n ^ "_def")
+           (* It would be better if we could mark these as "code" rather than "code_unfold" to retain
+              the structure in the language target. For now, code_unfold is required to ensure that
+              the semantics of enumerated inputs is correctly calculated *)
+           , @{attributes [code_unfold, z_defs]})
+           , check_term ctx ( 
+              (const @{const_name "promote_operation"} $ lens' $ const @{const_name collection_lens} $ const pn
+                ))))
   end;
 
 fun get_zop_ptype n ctx =
@@ -163,15 +192,29 @@ val parse_param =
     name -- (@{keyword "\<in>"} |-- term)
   end;
 
+val parse_operdefn =
+  let open Scan; open Parse in
+  ((Scan.optional (@{keyword "params"} |-- repeat1 parse_param) []) --
+  (Scan.optional (@{keyword "pre"} |-- repeat1 term) ["True"]) --
+  (Scan.optional (@{keyword "update"} |-- term) "[\<leadsto>]") --
+  (Scan.optional (@{keyword "where"} |-- repeat1 term) ["True"])
+  >> (fn (((ps, g), upd), post) => OperDefn {params = ps, pre = g, update = upd, guard = post}))
+  end
+
+val parse_operprom =
+  let open Scan; open Parse in
+  ((@{keyword "promote"} |-- term) -- (@{keyword "in"} |-- term) 
+  >> (fn (oper, lens) => OperProm {promop = oper, plens = lens}))
+  end
+
+val parse_operbody = parse_operprom || parse_operdefn;
+
 val parse_operation =
   let open Scan; open Parse in
   ((name --| @{keyword "="}) --
   (Scan.optional (@{keyword "over"} |-- typ) "_") --
-  (Scan.optional (@{keyword "params"} |-- repeat1 parse_param) []) --
-  (Scan.optional (@{keyword "pre"} |-- repeat1 term) ["True"]) --
-  (Scan.optional (@{keyword "update"} |-- term) "[\<leadsto>]") --
-  (Scan.optional (@{keyword "where"} |-- repeat1 term) ["True"]))
-  >> (fn (((((n, st), ps), g), upd), post) => Operation {name = n, state = st, params = ps, pre = g, update = upd, guard = post})
+  parse_operbody)
+  >> (fn ((n, st), body) => Operation {name = n, state = st, body = body})
    end;
 
 val parse_zmachine = 

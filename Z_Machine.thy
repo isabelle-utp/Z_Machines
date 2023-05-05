@@ -2,7 +2,7 @@ theory Z_Machine
   imports Z_Operations "ITree_Simulation.ITree_Simulation" "Z_Toolkit.Z_Toolkit" 
     "HOL-Library.Code_Target_Numeral" "Explorer.Explorer" Show_Record
   keywords "zmachine" "zoperation" :: "thy_decl_block"
-    and "over" "init" "invariant" "operations" "params" "pre" "update" "\<in>"
+    and "over" "init" "invariant" "operations" "params" "pre" "update" "\<in>" "promote"
 begin
 
 named_theorems z_machine_defs
@@ -10,40 +10,11 @@ named_theorems z_machine_defs
 hide_const Map.dom
 hide_const Map.ran
 
-text \<open> An operation is constructed from a precondition, update, and postcondition, all of which
-  are parameterised. \<close>
-
-definition mk_zop :: "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree)" where
-"mk_zop P \<sigma> Q = (\<lambda> v. assume (P v) ;; assert (Q v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a)"
-
-text \<open> An operation requires that precondition holds, and that following the update the postcondition(s)
-  also hold. \<close>
-
-lemma wp_zop [wp, code_unfold]: "wp (mk_zop P \<sigma> Q v) b = [\<lambda> \<s>. P v \<s> \<and> Q v \<s> \<and> (\<sigma> v \<dagger> [\<lambda> \<s>. b \<s>]\<^sub>e) \<s>]\<^sub>e"
-  by (simp add: mk_zop_def wp)
-
-lemma wlp_zop [wp, code_unfold]: "wlp (mk_zop P \<sigma> Q v) b = [\<lambda> \<s>. P v \<s> \<longrightarrow> Q v \<s> \<longrightarrow> (\<sigma> v \<dagger> [\<lambda> \<s>. b \<s>]\<^sub>e) \<s>]\<^sub>e"
-  by (simp add: mk_zop_def wp)
-
-lemma itree_pre_zop [dpre]: "itree_pre (mk_zop P \<sigma> Q v) = [\<lambda> \<s>. P v \<s>]\<^sub>e"
-  by (simp add: mk_zop_def dpre wp)
-
-lemma itree_rel_zop [itree_rel]: "itree_rel (mk_zop P \<sigma> Q v) = {(x, z). P v x \<and> Q v x \<and> z = \<sigma> v x}"
-  by (simp add: mk_zop_def itree_rel relcomp_unfold)
-
-lemma mk_zop_state_sat: "\<lbrakk> P v s; Q v s \<rbrakk> \<Longrightarrow> mk_zop P \<sigma> Q v s = Ret (\<sigma> v s)"
-  by (simp add: mk_zop_def seq_itree_def kleisli_comp_def assume_def test_def assigns_def)
-
 text \<open> An operation can have its parameters supplied by an event, using the construct below. \<close>
 
 abbreviation input_in_where_choice 
   :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('s \<Rightarrow> bool) \<times> ('e, 's) htree) \<Rightarrow> 's \<Rightarrow> 'e \<Zpfun> ('e, 's) itree" where
   "input_in_where_choice c A P \<equiv> (\<lambda> s. (\<lambda> e \<in> build\<^bsub>c\<^esub> ` A s | fst (P (the (match\<^bsub>c\<^esub> e))) s \<bullet> snd (P (the (match\<^bsub>c\<^esub> e))) s))"
-
-(*
-definition zop_event :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree) \<Rightarrow> 's \<Rightarrow> 'e \<Zpfun> ('e, 's) itree" where
-[code_unfold]: "zop_event c A zop = input_in_where_choice c A (\<lambda> v. (pre (zop v), zop v))"
-*)
 
 definition zop_event :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree) \<Rightarrow> ('e, 's) htree" where
 [code_unfold]: "zop_event c A zop = (\<lambda> s. Vis (prism_fun c (A s) (\<lambda> v. (pre (zop v) s, zop v s))))"
@@ -60,6 +31,12 @@ lemma zop_event_is_event_block:
 lemma pdom_zop_event: "wb_prism c \<Longrightarrow> pdom (zop_event c A zop s) = {e. e \<in> build\<^bsub>c\<^esub> ` A s \<and> pre (zop (the (match\<^bsub>c\<^esub> e))) s}"
   by (simp add: zop_event_def dom_prism_fun, auto)
 *)
+
+definition operation :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('e, 'a, 's) operation \<Rightarrow> ('e, 's) htree" where
+"operation c P = c?(v) | pre (P v) \<rightarrow> P v"
+
+definition io_operation :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('a \<Rightarrow> ('e, 'b \<times> 's) htree) \<Rightarrow> ('e, 's) htree" where
+"io_operation c d P = undefined"
 
 text \<open> A machine has an initialisation and a list of operations. \<close>
 
@@ -134,7 +111,7 @@ Outer_Syntax.command @{command_keyword zoperation} "define a Z operation"
     (Z_Machine.parse_operation >> (Toplevel.local_theory NONE NONE o Z_Machine.mk_zop));
 \<close>
 
-code_datatype pfun_of_alist pfun_of_map pfun_of_ufun pfun_of_chfuns pfun_of_pinj pfun_entries
+code_datatype pfun_of_alist pfun_of_map pfun_entries
 
 setup \<open> Explorer_Lib.switch_to_quotes \<close>
 
