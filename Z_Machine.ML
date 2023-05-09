@@ -6,6 +6,7 @@ type param = string * string
 
 datatype operation_body =
   OperDefn of {params: param list, pre: string list, update: string, guard: string list} |
+  OperComp of {params: param list, body: string} |
   OperProm of {promop: string, plens: string}
 
 datatype operation = 
@@ -149,7 +150,30 @@ mk_zop (Operation {name = n, state = s, body = OperProm {promop = opr, plens = l
            , check_term ctx ( 
               (const @{const_name "promote_operation"} $ lens' $ const @{const_name collection_lens} $ const pn
                 ))))
-  end;
+  end |
+mk_zop (Operation {name = n, state = s, body = OperComp {params = ps, body = bdy}}) ctx =
+  let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
+      val pss = (map (fn (p, t) => (p, lift_expr ctx ((parse_term ctx t)))) ps)
+      val pset = params_set (map snd pss)
+      val set = SEXP $ pset
+      val parm = dest_setT (range_type (Term.type_of (check_term ctx set)))
+      val st = read_typ ctx s
+      val ppat = mk_tuple (map (free o fst) pss)
+  in
+     snd (Local_Theory.define 
+           ((Binding.name (zop_type n), NoSyn)
+         , ((Binding.name (zop_type n ^ "_def")
+           , @{attributes [code_unfold, z_defs]})
+           , check_term ctx set)) ctx) |>
+     snd o Local_Theory.define 
+           ((Binding.name n, NoSyn)
+         , ((Binding.name (n ^ "_def")
+           (* It would be better if we could mark these as "code" rather than "code_unfold" to retain
+              the structure in the language target. For now, code_unfold is required to ensure that
+              the semantics of enumerated inputs is correctly calculated *)
+           , @{attributes [code_unfold, z_defs]})
+           , check_term ctx (Type.constraint (parm --> st --> dummyT) (tupled_lambda ppat (Type.constraint (st --> dummyT) (parse_term ctx bdy))))))
+ end ;
 
 fun get_zop_ptype n ctx =
   case Proof_Context.read_const {proper = false, strict = false} ctx n of
@@ -201,13 +225,19 @@ val parse_operdefn =
   >> (fn (((ps, g), upd), post) => OperDefn {params = ps, pre = g, update = upd, guard = post}))
   end
 
+val parse_opercomp = 
+  let open Scan; open Parse in
+  ((@{keyword "params"} |-- repeat1 parse_param) --
+  (@{keyword "is"} |-- term)) >> (fn (ps, bdy) => OperComp {params = ps, body = bdy})
+  end
+
 val parse_operprom =
   let open Scan; open Parse in
   ((@{keyword "promote"} |-- term) -- (@{keyword "in"} |-- term) 
   >> (fn (oper, lens) => OperProm {promop = oper, plens = lens}))
   end
 
-val parse_operbody = parse_operprom || parse_operdefn;
+val parse_operbody = parse_operprom || parse_opercomp || parse_operdefn;
 
 val parse_operation =
   let open Scan; open Parse in

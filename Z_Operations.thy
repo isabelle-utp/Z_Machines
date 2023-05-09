@@ -88,8 +88,7 @@ text \<open> Promoting an operation first checks whether the promotion lens is d
 
 definition promote_operation :: "('ls \<Longrightarrow> 'g) \<Rightarrow> ('i \<Rightarrow> 'l \<Longrightarrow> 'ls) \<Rightarrow> ('e, 'a, 'l) operation \<Rightarrow> ('e, 'i \<times> 'a, 'g) operation" where
 "promote_operation x pl P = 
-  (let a = promotion_lens x pl
-   in (\<lambda> (i, v) s. P v (get\<^bsub>a i\<^esub> s) \<bind> (\<lambda> ls'. Ret (put\<^bsub>a i\<^esub> s ls'))))"
+  (let a = promotion_lens x pl in (\<lambda> (i, v). promote_itree (a i) (P v)))"
 
 text \<open> The following notation allows us to promote an operation using the inferred collection lens. \<close>
 
@@ -105,7 +104,7 @@ lemma promote_mk_zop [wp, code_unfold]:
         (\<lambda> (a, p). (P p) \<up> x:cl(a)) 
         (\<lambda> (a, p). (\<sigma> p) \<up>\<^sub>s x:cl(a))
         (\<lambda> (a, p). (Q p) \<up> x:cl(a))"
-  by (auto simp add: promote_operation_def mk_zop_def Let_unfold promotion_lens_def fun_eq_iff 
+  by (auto simp add: promote_operation_def mk_zop_def Let_unfold promotion_lens_def fun_eq_iff promote_itree_def
       assume_def seq_itree_def kleisli_comp_def test_def expr_defs assigns_def lens_defs lens_source_def)
 
 subsection \<open> Proof Automation \<close>
