@@ -6,6 +6,12 @@ begin
 
 subsection \<open> Types \<close>
 
+text \<open> A concert hall uses a software system to keep track of bookings
+for performances. Inside the hall is a certain amount of seating, some or all
+of which may be made available to customers for a given performance. At this
+level of abstraction, we have no need to consider the representation of seats
+and customers, so we introduce them as given sets: \<close>
+
 type_synonym seat = integer
 type_synonym customer = String.literal
 
@@ -15,6 +21,8 @@ consts
   CUSTOMER  :: "customer set"
 
 subsection \<open> State Space \<close>
+
+text \<open> \<close>
 
 zstore BoxOffice = 
   \<comment> \<open> The seats available for purchase \<close>

@@ -14,8 +14,6 @@ type_synonym Signal = "LampId set"
 
 enumtype ProperState = dark | stop | warning | drive
 
-definition "ProperState = {dark, stop, warning, drive}"
-
 fun signalLamps :: "ProperState \<Rightarrow> LampId set" where
 "signalLamps dark = {}" |
 "signalLamps stop = {L1, L2}" |
@@ -84,12 +82,15 @@ zmachine DwarfSignal =
   invariant Dwarf_inv
   operations SetNewProperState TurnOn TurnOff Shine
 
+animate DwarfSignal
+
 subsection \<open> Structural Invariants and Deadlock Freedom \<close>
 
 lemma "Init establishes Dwarf_inv"
   by zpog_full
 
-lemma [hoare_lemmas]: "(SetNewProperState p) preserves Dwarf_inv"
+lemma [hoare_lemmas]: 
+  "(SetNewProperState p) preserves Dwarf_inv"
   by (zpog_full; auto)
 
 lemma [hoare_lemmas]: "TurnOn l preserves Dwarf_inv"
@@ -102,7 +103,7 @@ lemma [hoare_lemmas]: "Shine l preserves Dwarf_inv"
   by (zpog_full; auto)
 
 lemma deadlock_free_DwarfSignal: "deadlock_free DwarfSignal"
-  unfolding DwarfSignal_def by deadlock_free
+  by deadlock_free
 
 subsection \<open> Requirements \<close>
 
