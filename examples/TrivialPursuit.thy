@@ -3,7 +3,6 @@ theory TrivialPursuit
 begin
 
 enumtype Player = one | two | three | four | five | six
-
 enumtype Colour = blue | pink | yellow | brown | green | orange
 
 zstore LocalScore =
@@ -13,17 +12,21 @@ zstore GlobalScore =
   score :: "Player \<Zpfun> LocalScore"
 
 zoperation AnswerLocal =
-  params c \<in> Colour
+  params c \<in> Colour 
   pre "c \<notin> s"
   update "[s \<leadsto> s \<union> {c}]"
 
 zoperation AnswerGlobal =
   promote AnswerLocal in score
 
+zoperation WinGame =
+  params p \<in> Player
+  pre "(score p):s = Colour"
+
 zmachine TrivialPursuit =
   over GlobalScore
   init "[score \<leadsto> (\<lambda> p\<in>Player \<bullet> \<lblot> s \<leadsto> {} \<rblot>)]"
-  operations AnswerGlobal
+  operations AnswerGlobal WinGame
  
 animate TrivialPursuit
 
