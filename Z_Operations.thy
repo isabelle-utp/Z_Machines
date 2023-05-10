@@ -101,7 +101,7 @@ text \<open> Promotion an operation constructed from a precondition and update r
 lemma promote_mk_zop [wp, code_unfold]:
   "promote_operation x cl (mk_zop P \<sigma> Q) 
     = mk_zop 
-        (\<lambda> (a, p). (P p) \<up> x:cl(a)) 
+        (\<lambda> (a, p). ((P p) \<up> x:cl(a) \<and> \<^bold>D(x:cl(a)))\<^sub>e) 
         (\<lambda> (a, p). (\<sigma> p) \<up>\<^sub>s x:cl(a))
         (\<lambda> (a, p). (Q p) \<up> x:cl(a))"
   by (auto simp add: promote_operation_def mk_zop_def Let_unfold promotion_lens_def fun_eq_iff promote_itree_def
