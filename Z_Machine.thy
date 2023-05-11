@@ -1,6 +1,7 @@
 theory Z_Machine
   imports Z_Operations Z_Animator "Z_Toolkit.Z_Toolkit" 
-    "HOL-Library.Code_Target_Numeral" "Explorer.Explorer" Show_Record
+    "HOL-Library.Code_Target_Numeral" "ITree_Simulation.Code_Rational"
+    "Explorer.Explorer" Show_Record
   keywords "zmachine" "zoperation" :: "thy_decl_block"
     and "over" "init" "invariant" "operations" "params" "pre" "update" "\<in>" "promote" "emit"
 begin
@@ -144,6 +145,27 @@ text \<open> The next line allows us to create lists of characters from literals
 declare [[coercion String.explode]]
 
 unbundle Expression_Syntax
+
+instantiation rational :: default
+begin
+definition "default_rational = (0::rational)"
+instance ..
+end
+
+instantiation rational :: "show"
+begin
+instance ..
+end
+
+code_printing
+  constant "show_rational_inst.show_rational" \<rightharpoonup> (Haskell) "Prelude.show"
+| class_instance "rational" :: "show" \<rightharpoonup> (Haskell) -
+
+instantiation rat :: default
+begin
+definition "default_rat = (0::rat)"
+instance ..
+end
 
 text \<open> We need an instance of the "Show" class for sets. Due to the way the code generator works,
   we need to replace the standard generated code datatype "Set" without our own, and derive
