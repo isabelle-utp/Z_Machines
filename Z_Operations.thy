@@ -23,6 +23,8 @@ text \<open> An operation is constructed from a precondition, update, and postco
 definition mk_zop :: "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree)" where
 "mk_zop P \<sigma> Q = (\<lambda> v. assume (P v) ;; assert (Q v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a)"
 
+abbreviation (input) "emit_op \<equiv> mk_zop (\<lambda> p. (True)\<^sub>e) (\<lambda> p. [\<leadsto>]) (\<lambda> p. (True)\<^sub>e)"
+
 text \<open> An operation requires that precondition holds, and that following the update the postcondition(s)
   also hold. \<close>
 

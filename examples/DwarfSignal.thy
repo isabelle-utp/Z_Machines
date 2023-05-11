@@ -65,7 +65,7 @@ zoperation TurnOn =
 
 zoperation Shine =
   over Dwarf
-  params l\<in>"{current_state}"
+  emit current_state
 
 definition Init :: "Dwarf subst" where
   [z_defs]:

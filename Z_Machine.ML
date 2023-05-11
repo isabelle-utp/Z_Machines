@@ -7,7 +7,8 @@ type param = string * string
 datatype operation_body =
   OperDefn of {params: param list, pre: string list, update: string, guard: string list} |
   OperComp of {params: param list, body: string} |
-  OperProm of {promop: string, plens: string}
+  OperProm of {promop: string, plens: string} |
+  OperEmit of {emit: string}
 
 datatype operation = 
   Operation of {name: string, state: string, body: operation_body}
@@ -67,6 +68,28 @@ fun zop_update n = n ^ "_update"
 
 (* FIXME: Guard ~> Precondition, Postcondition ~> Guard *)
 
+fun def_zop n set st body ctx = 
+  let open Syntax; open HOLogic; open Local_Theory
+      val parm = dest_setT (range_type (Term.type_of (check_term ctx set)))
+  in
+     (* Generate the type of the operation (i.e. the set of possible parameter values *)
+     snd (define 
+           ((Binding.name (zop_type n), NoSyn)
+         , ((Binding.name (zop_type n ^ "_def")
+           , @{attributes [code_unfold, z_defs]})
+           , check_term ctx set)) ctx) |>
+     (* Generate the precondition *)
+     snd o define 
+           ((Binding.name n, NoSyn)
+         , ((Binding.name (n ^ "_def")
+           (* It would be better if we could mark these as "code" rather than "code_unfold" to retain
+              the structure in the language target. For now, code_unfold is required to ensure that
+              the semantics of enumerated inputs is correctly calculated *)
+           , @{attributes [code_unfold, z_defs]})
+           , check_term ctx (Type.constraint (parm --> st --> dummyT) body)))
+  end
+
+
 fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = pre, update = upd, guard = g}}) ctx =
   let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
       val pss = (map (fn (p, t) => (p, lift_expr ctx ((parse_term ctx t)))) ps)
@@ -83,23 +106,15 @@ fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = 
                 (mk_conj (const @{const_name Set.member} $ ppat $ (pset $ Bound 0)
                          , mk_lift_expr ctx (foldr1 mk_conj ((map (parse_term ctx) g))) $ Bound 0)) 
 
-      (* val pupd = Type.constraint (st --> st) (parse_term ctx upd)
+      val body = ( 
+              (Const (@{const_name "mk_zop"}, (parm --> st --> dummyT) --> dummyT)
+                $ tupled_lambda ppat (SEXP $ ppre))
+                $ tupled_lambda ppat (Type.constraint (st --> st) (parse_term ctx upd))
+                $ tupled_lambda ppat (SEXP $ pguard)
+                )
 
-      val code_unfold = Attrib.check_src @{context} (Token.make_src ("code_unfold", Position.none) [])
-      val z_defs = Attrib.check_src @{context} (Token.make_src ("z_defs", Position.none) [])
-      fun gen n ty term = snd o Local_Theory.define 
-           ((Binding.name n, NoSyn)
-         , ((Binding.name (n ^ "_def")
-           , [code_unfold, z_defs])
-           , check_term ctx term))
-*)
-  in (* Generate the type of the operation (i.e. the set of possible parameter values *)
-     snd (Local_Theory.define 
-           ((Binding.name (zop_type n), NoSyn)
-         , ((Binding.name (zop_type n ^ "_def")
-           , @{attributes [code_unfold, z_defs]})
-           , check_term ctx set)) ctx) |>
-     (
+  in def_zop n set st body ctx
+  end |
      (*
      (* Generate the precondition *)
      gen (zop_pre n) (parm --> st --> dummyT) (tupled_lambda ppat (SEXP $ ppre))
@@ -111,69 +126,35 @@ fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = 
      gen (zop_update n) (parm --> st --> st) (tupled_lambda ppat pupd)
      #>
      *)     
-     snd o Local_Theory.define 
-           ((Binding.name n, NoSyn)
-         , ((Binding.name (n ^ "_def")
-           (* It would be better if we could mark these as "code" rather than "code_unfold" to retain
-              the structure in the language target. For now, code_unfold is required to ensure that
-              the semantics of enumerated inputs is correctly calculated *)
-           , @{attributes [code_unfold, z_defs]})
-           , check_term ctx ( 
-              (Const (@{const_name "mk_zop"}, (parm --> st --> dummyT) --> dummyT)
-                $ tupled_lambda ppat (SEXP $ ppre))
-                $ tupled_lambda ppat (Type.constraint (st --> st) (parse_term ctx upd))
-                $ tupled_lambda ppat (SEXP $ pguard)
-(*                $ free (zop_pre n)
-                $ free (zop_update n)
-                $ free (zop_guard n) *)
-                ))))
-  end |
+
 mk_zop (Operation {name = n, state = s, body = OperProm {promop = opr, plens = lens}}) ctx =
   let open Syntax; open Lift_Expr
       val opr' = read_term ctx opr; 
       val pn = fst (dest_Const opr');
       val opr_type = const (pn ^ "_type"); 
       val lens' = read_term ctx lens 
+      val st = read_typ ctx s
       val set = check_term ctx (const @{const_name "promoted_type"} $ lens' $ const @{const_name collection_lens} $ opr_type)
-  in
-      snd (Local_Theory.define 
-           ((Binding.name (zop_type n), NoSyn)
-         , ((Binding.name (zop_type n ^ "_def")
-           , @{attributes [code, z_defs]})
-           , check_term ctx set)) ctx) |>
-      snd o Local_Theory.define ((Binding.name n, NoSyn)
-         , ((Binding.name (n ^ "_def")
-           (* It would be better if we could mark these as "code" rather than "code_unfold" to retain
-              the structure in the language target. For now, code_unfold is required to ensure that
-              the semantics of enumerated inputs is correctly calculated *)
-           , @{attributes [code_unfold, z_defs]})
-           , check_term ctx ( 
-              (const @{const_name "promote_operation"} $ lens' $ const @{const_name collection_lens} $ const pn
-                ))))
+      val body = const @{const_name "promote_operation"} $ lens' $ const @{const_name collection_lens} $ const pn
+  in def_zop n set st body ctx
   end |
 mk_zop (Operation {name = n, state = s, body = OperComp {params = ps, body = bdy}}) ctx =
   let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
       val pss = (map (fn (p, t) => (p, lift_expr ctx ((parse_term ctx t)))) ps)
       val pset = params_set (map snd pss)
       val set = SEXP $ pset
-      val parm = dest_setT (range_type (Term.type_of (check_term ctx set)))
       val st = read_typ ctx s
       val ppat = mk_tuple (map (free o fst) pss)
-  in
-     snd (Local_Theory.define 
-           ((Binding.name (zop_type n), NoSyn)
-         , ((Binding.name (zop_type n ^ "_def")
-           , @{attributes [code_unfold, z_defs]})
-           , check_term ctx set)) ctx) |>
-     snd o Local_Theory.define 
-           ((Binding.name n, NoSyn)
-         , ((Binding.name (n ^ "_def")
-           (* It would be better if we could mark these as "code" rather than "code_unfold" to retain
-              the structure in the language target. For now, code_unfold is required to ensure that
-              the semantics of enumerated inputs is correctly calculated *)
-           , @{attributes [code_unfold, z_defs]})
-           , check_term ctx (Type.constraint (parm --> st --> dummyT) (tupled_lambda ppat (Type.constraint (st --> dummyT) (parse_term ctx bdy))))))
- end ;
+      val body = tupled_lambda ppat (Type.constraint (st --> dummyT) (parse_term ctx bdy))
+  in def_zop n set st body ctx
+ end |
+mk_zop (Operation {name = n, state = s, body = OperEmit {emit = e}}) ctx =
+  let open Syntax; open HOLogic; open Lift_Expr
+  val set = mk_lift_expr ctx (mk_set dummyT [parse_term ctx e])
+  val st = read_typ ctx s
+  val body = const @{const_abbrev emit_op}
+  in def_zop n set st body ctx
+  end;
 
 fun get_zop_ptype n ctx =
   case Proof_Context.read_const {proper = false, strict = false} ctx n of
@@ -237,7 +218,13 @@ val parse_operprom =
   >> (fn (oper, lens) => OperProm {promop = oper, plens = lens}))
   end
 
-val parse_operbody = parse_operprom || parse_opercomp || parse_operdefn;
+val parse_operemit =
+  let open Scan; open Parse in
+  (@{keyword "emit"} |-- term)
+  >> (fn e => OperEmit {emit = e})
+  end
+
+val parse_operbody = parse_operprom || parse_opercomp || parse_operemit || parse_operdefn;
 
 val parse_operation =
   let open Scan; open Parse in
