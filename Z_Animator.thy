@@ -139,7 +139,7 @@ fun animate model thy =
       val ctx' =
         (Code_Target.export_code true [Code.read_const (Local_Theory.exit_global ctx) model] [((("Haskell", ""), SOME ({physical = false}, (Path.explode "animate", Position.none))), [])] ctx)
         |> prep_animation model (Context.theory_name thy)
-  in run_animation (Local_Theory.exit_global ctx'); (Local_Theory.exit_global ctx')
+  in run_animation (Local_Theory.exit_global ctx')
   end 
 
 end;
@@ -148,7 +148,10 @@ end;
 
 ML \<open>
   Outer_Syntax.command @{command_keyword animate} "animate a Z Machine"
-  (Parse.name >> (fn model => Toplevel.theory (Z_Machine_Animator.animate model)));
+  ((Parse.name -- Scan.optional (@{keyword "defines"} |-- Scan.repeat1 ((Parse.name --| @{keyword "="}) -- Parse.term)) []) 
+   >> (fn (model, defs) => 
+        Toplevel.theory 
+        (fn thy => let val anim = Z_Machine_Animator.animate model (Def_Const.def_consts defs thy) in thy end)));
 
 \<close>
 
