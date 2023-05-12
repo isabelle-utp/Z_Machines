@@ -132,7 +132,7 @@ mk_zop (Operation {name = n, state = s, body = OperProm {promop = opr, plens = l
       val opr' = read_term ctx opr; 
       val pn = fst (dest_Const opr');
       val opr_type = const (pn ^ "_type"); 
-      val lens' = read_term ctx lens 
+      val lens' = parse_term ctx lens 
       val st = read_typ ctx s
       val set = check_term ctx (const @{const_name "promoted_type"} $ lens' $ const @{const_name collection_lens} $ opr_type)
       val body = const @{const_name "promote_operation"} $ lens' $ const @{const_name collection_lens} $ const pn
