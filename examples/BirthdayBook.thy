@@ -48,15 +48,10 @@ zmachine BirthdayBookSys =
 
 definition [z_defs]: "BirthdayBook_axioms = (NAME \<noteq> {} \<and> DATE \<noteq> {})"
 
-thm disjE
-thm exE
-
 lemma BirthdayBook_deadlock_free: "BirthdayBook_axioms \<Longrightarrow> deadlock_free BirthdayBookSys" 
   by (deadlock_free invs: AddBirthday_inv FindBirthday_inv Remind_inv; auto)
 
-def_consts NAME = "{STR ''Simon''}" 
-def_consts DATE = "{STR ''25/08/1983''}"
-
 animate BirthdayBookSys
+  defines NAME = "{''Simon'', ''Jim''}" DATE = "{''25/08/1983''}"
 
 end
