@@ -2,7 +2,7 @@ theory Z_Machine
   imports Z_Operations Z_Animator "Z_Toolkit.Z_Toolkit" 
     "HOL-Library.Code_Target_Numeral" "ITree_Simulation.Code_Rational"
     "Explorer.Explorer" Show_Record
-  keywords "zmachine" "zoperation" :: "thy_decl_block"
+  keywords "zmachine" "zoperation" "zinit" :: "thy_decl_block"
     and "over" "init" "invariant" "operations" "until" "params" "pre" "update" "\<in>" "promote" "emit"
 begin
 
@@ -85,14 +85,17 @@ proof (simp add: z_machine_def z_machine_main_def, rule deadlock_free_processI, 
     using assms(3) by auto
 qed
 
+lemma preserves_trivial: "P preserves True"
+  by (simp add: hoare_alt_def)
+
 method deadlock_free_invs uses invs =
-  ((simp add: z_machine_defs)?
-  ,rule deadlock_free_z_machine
-  ,(zpog_full; auto)[1]
-  ,(auto intro!: hl_zop_event hoare_lemmas invs)[1])
+  (((simp add: z_machine_defs)?
+   ,rule deadlock_free_z_machine
+   ,(zpog_full; auto)[1]
+   ,((auto intro!: hl_zop_event preserves_trivial hoare_lemmas invs)[1] ; fail)))
 
 method deadlock_free uses invs =
-  (deadlock_free_invs invs: invs,
+  ((deadlock_free_invs invs: invs),
    (simp add: zop_event_is_event_block extchoice_event_block z_defs z_locale_defs wp Bex_Sum_iff;
     expr_simp add: split_sum_all split_sum_ex;
     ((rule conjI allI impI | erule conjE disjE exE)+; rename_alpha_vars?)?))
@@ -110,6 +113,10 @@ Outer_Syntax.command @{command_keyword zmachine} "define a Z machine"
 
 Outer_Syntax.command @{command_keyword zoperation} "define a Z operation"
     (Z_Machine.parse_operation >> (Toplevel.local_theory NONE NONE o Z_Machine.mk_zop));
+
+Outer_Syntax.command @{command_keyword zinit} "define a Z initialisation"
+    (Z_Machine.parse_zinit >> (Toplevel.local_theory NONE NONE o Z_Machine.mk_zinit));
+
 \<close>
 
 code_datatype pfun_of_alist pfun_of_map pfun_entries

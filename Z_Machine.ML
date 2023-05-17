@@ -12,6 +12,10 @@ datatype operation_body =
 
 datatype operation = 
   Operation of {name: string, state: string, body: operation_body}
+
+datatype initialisation = 
+  Init of {name: string, state: string, update: string}
+
 datatype zmachine = ZMachine of {name: string, state: string, inv: string, init: string, operations: string list, ends: string}
 
 val SEXP = Const (@{const_name SEXP}, dummyT --> dummyT)
@@ -89,6 +93,15 @@ fun def_zop n set st body ctx =
            , check_term ctx (Type.constraint (parm --> st --> dummyT) body)))
   end
 
+fun mk_zinit (Init {name = n, state = s, update = upd}) ctx =
+  let open Syntax; open Library; open Logic; open HOLogic; open Local_Theory
+      val st = read_typ ctx s 
+  in snd (define 
+           ((Binding.name n, NoSyn)
+         , ((Binding.name (n ^ "_def")
+           , @{attributes [code_unfold, z_defs]})
+           , check_term ctx (Type.constraint (st --> st) (parse_term ctx upd)))) ctx)
+  end;
 
 fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = pre, update = upd, guard = g}}) ctx =
   let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
@@ -234,6 +247,14 @@ val parse_operation =
   parse_operbody)
   >> (fn ((n, st), body) => Operation {name = n, state = st, body = body})
    end;
+
+val parse_zinit =
+  let open Scan; open Parse in
+  ((name --| @{keyword "="}) --
+  (@{keyword "over"} |-- typ) --
+  (@{keyword "update"} |-- term))
+  >> (fn ((n, st), upd) => Init {name = n, state = st, update = upd})
+  end;
 
 val parse_zmachine = 
   let open Scan; open Parse in
