@@ -72,8 +72,6 @@ animate_cnt n t@(Vis (Pfun_of_alist m)) =
   where eh = eventHierarchy (map (\(e, p) -> (Prelude.show e, p)) m);
 animate :: (Eq e, Prelude.Show e, Prelude.Show s) => Itree e s -> Prelude.IO ();
 animate p = do { hSetBuffering stdout NoBuffering; putStrLn ""; putStrLn "Starting Animation..."; animate_cnt 0 p }
-
-
 \<close>
 
 ML \<open> 

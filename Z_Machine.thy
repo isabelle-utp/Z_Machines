@@ -1,5 +1,5 @@
 theory Z_Machine
-  imports Z_Operations Z_Animator "Z_Toolkit.Z_Toolkit" 
+  imports Z_Operations Z_Animator Z_Testing "Z_Toolkit.Z_Toolkit" 
     "HOL-Library.Code_Target_Numeral" "ITree_Simulation.Code_Rational"
     "Explorer.Explorer" Show_Record
   keywords "zmachine" "zoperation" "zinit" :: "thy_decl_block"
