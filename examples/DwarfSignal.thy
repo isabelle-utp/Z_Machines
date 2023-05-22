@@ -51,15 +51,13 @@ zoperation TurnOff =
   over Dwarf
   params l\<in>turn_off 
   update "[turn_off\<Zprime> = turn_off - {l}
-          ,turn_on\<Zprime> = turn_on - {l}
           ,last_state\<Zprime> = current_state
           ,current_state\<Zprime> = current_state - {l}]"
 
 zoperation TurnOn =
   over Dwarf
   params l\<in>turn_on
-  update "[turn_off\<Zprime> = turn_off - {l}
-          ,turn_on\<Zprime> = turn_on - {l}
+  update "[turn_on\<Zprime> = turn_on - {l}
           ,last_state\<Zprime> = current_state
           ,current_state\<Zprime> = current_state \<union> {l}]"
 
@@ -67,15 +65,14 @@ zoperation Shine =
   over Dwarf
   emit current_state
 
-definition Init :: "Dwarf subst" where
-  [z_defs]:
-  "Init = 
-  [ last_proper_state \<leadsto> stop
-  , turn_off \<leadsto> {}
-  , turn_on \<leadsto> {}
-  , last_state \<leadsto> signalLamps stop
-  , current_state \<leadsto> signalLamps stop
-  , desired_proper_state \<leadsto> stop ]"
+zinit Init =
+  over Dwarf
+  update "[ last_proper_state \<leadsto> stop
+          , turn_off \<leadsto> {}
+          , turn_on \<leadsto> {}
+          , last_state \<leadsto> signalLamps stop
+          , current_state \<leadsto> signalLamps stop
+          , desired_proper_state \<leadsto> stop ]"
 
 zmachine DwarfSignal = 
   init Init
@@ -132,7 +129,7 @@ zmachine DwarfSignalTest =
   init Init
   operations SetNewProperState TurnOn TurnOff Shine ViolNeverShowAll
 
-animate DwarfSignalTest
+animate DwarfSignalTest 
 
 lemma "(SetNewProperState p) preserves NeverShowAll"
   by zpog_full
