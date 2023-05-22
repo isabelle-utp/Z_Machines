@@ -5,7 +5,6 @@ theory TelephoneExchange_locales
 begin 
 
 subsection \<open> Preliminaries \<close>
-
 unbundle Z_Syntax
 
 declare list_partitions_def [simp]
@@ -62,6 +61,7 @@ zstore Exchange =
   connected :: "subs \<Zpfun> subs"
 where
   connected_inj: "pfun_inj connected"
+(*  cal_SubRec: "ran cal \<subseteq> SubRec" *)
   parts: "[Free, Unavailable, dom cal, ran connected] partitions Subs"
   \<comment> \<open> SF: I modified the above invariant; the initiators of calls and those connected to should be disjoint. \<close>
   Callers: "dom ((cal \<Zcomp> st) \<Zrres> Connected) = Callers"
