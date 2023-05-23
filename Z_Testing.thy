@@ -111,6 +111,8 @@ fun prep_testing test_file ctx =
 
 fun dlock_test model thy =
   let val ctx = Named_Target.theory_init thy
+      (* Sanity check that the model does exist before we generate code *)
+      val _ = Proof_Context.read_const {proper = true, strict = false} ctx model
       val ctx' =
         (Code_Target.export_code true [Code.read_const (Local_Theory.exit_global ctx) model] [((("Haskell", ""), SOME ({physical = false}, (Path.explode "animate", Position.none))), [])] ctx)
         |> prep_testing (dlock_test_file model (Context.theory_name thy))
@@ -119,6 +121,9 @@ fun dlock_test model thy =
 
 fun event_test model chan thy =
   let val ctx = Named_Target.theory_init thy
+      (* Sanity check that the model does exist before we generate code *)
+      val _ = Proof_Context.read_const {proper = true, strict = false} ctx model
+      val _ = Proof_Context.read_const {proper = true, strict = false} ctx chan
       val ctx' =
         (Code_Target.export_code true [Code.read_const (Local_Theory.exit_global ctx) model] [((("Haskell", ""), SOME ({physical = false}, (Path.explode "animate", Position.none))), [])] ctx)
         |> prep_testing (event_test_file model chan (Context.theory_name thy))
