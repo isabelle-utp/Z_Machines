@@ -2,7 +2,7 @@ section \<open> Testing Z-Machines \<close>
 
 theory Z_Testing
   imports Z_Animator
-  keywords "check_deadlock" :: "thy_defn"
+  keywords "check_deadlock" "check_operation" :: "thy_defn"
 begin
 
 code_identifier
@@ -37,16 +37,22 @@ exoand_itree (tr, Ret v) = [(Term : tr, Ret v)]
 expand_itrees :: [([IEvt e], Itree e s)] -> [([IEvt e], Itree e s)]
 expand_itrees ts = concat (map expand_itree ts)
 
+find_gen_traces :: Int -> (IEvt e -> Bool) -> [([IEvt e], Itree e s)] -> [[IEvt e]]
+find_gen_traces 0 p gen = []
+find_gen_traces n p gen = (if (null matches) then find_gen_traces (n - 1) p (expand_itrees gen) else matches)
+  where matches = map fst (filter ((\x -> not (null x) && p (head x)) . fst) gen)
+
+find_traces :: Int -> (IEvt e -> Bool) -> Itree e s -> [[IEvt e]]
+find_traces n p t = find_gen_traces n p [([], t)]
+
 itree_rev_traces :: Int -> Itree e s -> [[IEvt e]]
 itree_rev_traces n p = map fst ((iterate expand_itrees [([], p)]) !! (n+1))
 
 dlock_traces :: Int -> Itree e s -> [[e]]
-dlock_traces n p = map (reverse . map getEvt . filter isEvt) (filter (isDlock . head) trs)
-  where trs = itree_rev_traces n p
+dlock_traces n p = map (reverse . map getEvt . filter isEvt) (find_traces n isDlock p)
 
 event_traces :: Int -> (e -> Bool) -> Itree e s -> [[e]]
-event_traces n t p = map (reverse . map getEvt . filter isEvt) (filter ((\e -> isEvt e && t (getEvt e)) . head) trs)
-  where trs = itree_rev_traces n p
+event_traces n t p = map (reverse . map getEvt . filter isEvt) (find_traces n (\e -> isEvt e && t (getEvt e)) p)
 
 test_event :: Show e => Int -> (e -> Bool) -> Itree e s -> IO ()
 test_event n t p = do { case trs of
@@ -119,6 +125,9 @@ fun event_test model chan thy =
   in thy
   end 
 
+fun operation_test model opn thy =
+  event_test model (Z_Machine_Animator.firstLower opn ^ "_C") thy;
+
 
 end
 
@@ -133,5 +142,12 @@ ML \<open>
         (fn thy => let val anim = Z_Machine_Testing.dlock_test model thy in thy end)));
 \<close>
 
+ML \<open>
+  Outer_Syntax.command @{command_keyword check_operation} "check for occurence of an operation in a Z Machine"
+  ((Parse.name -- Parse.name)
+   >> (fn (model, opn) => 
+        Toplevel.theory 
+        (fn thy => let val anim = Z_Machine_Testing.operation_test model opn thy in thy end)));
+\<close>
 
 end
