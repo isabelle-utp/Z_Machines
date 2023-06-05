@@ -2,7 +2,7 @@ section \<open> Testing Z-Machines \<close>
 
 theory Z_Testing
   imports Z_Animator
-  keywords "check_deadlock" "check_operation" :: "thy_defn"
+  keywords "check_deadlock" "check_reachable" :: "thy_defn"
   and "depth"
 begin
 
@@ -152,7 +152,7 @@ ML \<open>
 \<close>
 
 ML \<open>
-  Outer_Syntax.command @{command_keyword check_operation} "check for occurence of an operation in a Z Machine"
+  Outer_Syntax.command @{command_keyword check_reachable} "check for reachability of an operation in a Z Machine"
   ((Parse.name -- Parse.name
    -- Scan.optional (@{keyword "defines"} |-- Scan.repeat1 ((Parse.name --| @{keyword "="}) -- Parse.term)) []
    -- Scan.optional (@{keyword "depth"} |-- Parse.nat) 10)

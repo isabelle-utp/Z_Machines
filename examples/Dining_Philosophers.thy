@@ -102,9 +102,10 @@ animate Dining_Philosophers
   defines phil_num = 4
 
 check_deadlock Dining_Philosophers
-  defines phil_num = 4
+  defines phil_num = 5
+  depth 10
 
-check_operation Dining_Philosophers Eat
+check_reachable Dining_Philosophers Eat
   defines phil_num = 4
 
 text \<open> At the point of animation we can vary the number of philosophers to observe possible scenarios. \<close>

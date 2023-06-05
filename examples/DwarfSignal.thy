@@ -129,7 +129,9 @@ zmachine DwarfSignalTest =
   init Init
   operations SetNewProperState TurnOn TurnOff Shine ViolNeverShowAll
 
-animate DwarfSignalTest 
+animate DwarfSignalTest
+
+check_reachable DwarfSignalTest ViolNeverShowAll
 
 lemma "(SetNewProperState p) preserves NeverShowAll"
   by zpog_full
