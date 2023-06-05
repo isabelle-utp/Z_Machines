@@ -3,6 +3,7 @@ section \<open> Testing Z-Machines \<close>
 theory Z_Testing
   imports Z_Animator
   keywords "check_deadlock" "check_operation" :: "thy_defn"
+  and "depth"
 begin
 
 code_identifier
@@ -69,8 +70,9 @@ test_dlock n p = do { case trs of
   where trs = dlock_traces n p
 \<close>
 
-ML \<open>
 
+
+ML \<open>
 structure Z_Machine_Testing =
 struct
 
@@ -79,17 +81,17 @@ fun test_files_cp ghc tmp =
   " in writeln \"Compiling test...\"; bash (\"cd \" ^ Path.implode path' ^ \"; " ^ ghc ^ " ZTest.hs >> /dev/null; ./ZTest\") ; copy_dir path' (Path.explode \"" ^ tmp ^ "\") end)";
 
 
-fun dlock_test_file model thy =
+fun dlock_test_file model depth thy =
   "module Main where \n" ^
   "import ZTesting; \n" ^
   "import " ^ thy ^ "; \n" ^
-  "main = test_dlock 10 " ^ Z_Machine_Animator.firstLower model
+  "main = test_dlock " ^ string_of_int depth ^ " " ^ Z_Machine_Animator.firstLower model
 
-fun event_test_file model chan thy =
+fun event_test_file model chan depth thy =
   "module Main where \n" ^
   "import ZTesting; \n" ^
   "import " ^ thy ^ "; \n" ^
-  "main = test_event 10 is_" ^ chan ^ " " ^ Z_Machine_Animator.firstLower model
+  "main = test_event " ^ string_of_int depth ^ " is_" ^ chan ^ " " ^ Z_Machine_Animator.firstLower model
 
 fun prep_testing test_file ctx =
   let open Generated_Files; 
@@ -109,24 +111,24 @@ fun prep_testing test_file ctx =
     in ctx' end)
   end
 
-fun dlock_test model thy =
+fun dlock_test model depth thy =
   let val ctx = Named_Target.theory_init thy
       (* Sanity check that the model does exist before we generate code *)
       val _ = Proof_Context.read_const {proper = true, strict = false} ctx model
       val ctx' =
         (Code_Target.export_code true [Code.read_const (Local_Theory.exit_global ctx) model] [((("Haskell", ""), SOME ({physical = false}, (Path.explode "animate", Position.none))), [])] ctx)
-        |> prep_testing (dlock_test_file model (Context.theory_name thy))
+        |> prep_testing (dlock_test_file model depth (Context.theory_name thy))
   in thy
   end 
 
-fun event_test model chan thy =
+fun event_test model chan depth thy =
   let val ctx = Named_Target.theory_init thy
       (* Sanity check that the model does exist before we generate code *)
       val _ = Proof_Context.read_const {proper = true, strict = false} ctx model
       val _ = Proof_Context.read_const {proper = true, strict = false} ctx chan
       val ctx' =
         (Code_Target.export_code true [Code.read_const (Local_Theory.exit_global ctx) model] [((("Haskell", ""), SOME ({physical = false}, (Path.explode "animate", Position.none))), [])] ctx)
-        |> prep_testing (event_test_file model chan (Context.theory_name thy))
+        |> prep_testing (event_test_file model chan depth (Context.theory_name thy))
   in thy
   end 
 
@@ -142,17 +144,21 @@ end
 ML \<open>
   Outer_Syntax.command @{command_keyword check_deadlock} "check deadlock in a Z Machine"
   (Parse.name 
-   >> (fn model => 
+   -- Scan.optional (@{keyword "defines"} |-- Scan.repeat1 ((Parse.name --| @{keyword "="}) -- Parse.term)) []
+   -- Scan.optional (@{keyword "depth"} |-- Parse.nat) 10 
+   >> (fn ((model, defs), depth) => 
         Toplevel.theory 
-        (fn thy => let val anim = Z_Machine_Testing.dlock_test model thy in thy end)));
+        (fn thy => let val anim = Z_Machine_Testing.dlock_test model depth (Def_Const.def_consts defs thy) in thy end)));
 \<close>
 
 ML \<open>
   Outer_Syntax.command @{command_keyword check_operation} "check for occurence of an operation in a Z Machine"
-  ((Parse.name -- Parse.name)
-   >> (fn (model, opn) => 
+  ((Parse.name -- Parse.name
+   -- Scan.optional (@{keyword "defines"} |-- Scan.repeat1 ((Parse.name --| @{keyword "="}) -- Parse.term)) []
+   -- Scan.optional (@{keyword "depth"} |-- Parse.nat) 10)
+   >> (fn (((model, opn), defs), depth) => 
         Toplevel.theory 
-        (fn thy => let val anim = Z_Machine_Testing.operation_test model opn thy in thy end)));
+        (fn thy => let val anim = Z_Machine_Testing.operation_test model opn depth (Def_Const.def_consts defs thy) in thy end)));
 \<close>
 
 end

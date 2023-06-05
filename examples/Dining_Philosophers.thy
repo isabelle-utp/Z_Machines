@@ -99,7 +99,13 @@ text \<open> We set the initial state for all chopsticks to be available, all ph
   holding any chopstick, and all philosophers to be @{const thinking}. \<close>
 
 animate Dining_Philosophers
-  defines phil_num = "2"
+  defines phil_num = 4
+
+check_deadlock Dining_Philosophers
+  defines phil_num = 4
+
+check_operation Dining_Philosophers Eat
+  defines phil_num = 4
 
 text \<open> At the point of animation we can vary the number of philosophers to observe possible scenarios. \<close>
 
