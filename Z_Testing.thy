@@ -33,7 +33,7 @@ expand_itree (Term : tr, p) = [(Term : tr, p)]
 expand_itree (tr, Vis (Pfun_of_alist [])) = [(Dlock : tr, Vis (Pfun_of_alist []))]
 expand_itree (tr, Vis (Pfun_of_alist m)) = map (\(e, p) -> (Evt e : tr, p)) m
 expand_itree (tr, Sil p) = expand_itree (tr, p)
-exoand_itree (tr, Ret v) = [(Term : tr, Ret v)]
+expand_itree (tr, Ret v) = [(Term : tr, Ret v)]
 
 expand_itrees :: [([IEvt e], Itree e s)] -> [([IEvt e], Itree e s)]
 expand_itrees ts = concat (map expand_itree ts)
