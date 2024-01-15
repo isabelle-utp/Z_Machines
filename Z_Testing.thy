@@ -78,7 +78,7 @@ struct
 
 fun test_files_cp ghc tmp = 
   "(fn path => let open Isabelle_System; val path' = Path.append path (Path.make [\"code\", \"animate\"])" ^
-  " in writeln \"Compiling test...\"; bash (\"cd \" ^ Path.implode path' ^ \"; " ^ ghc ^ " ZTest.hs >> /dev/null; ./ZTest\") ; copy_dir path' (Path.explode \"" ^ tmp ^ "\") end)";
+  " in writeln \"Executing test...\"; bash (\"cd \" ^ Path.implode path' ^ \"; " ^ ghc ^ " ZTest.hs >> /dev/null; ./ZTest\") ; copy_dir path' (Path.explode \"" ^ tmp ^ "\") end)";
 
 
 fun dlock_test_file model depth thy =
@@ -117,7 +117,7 @@ fun dlock_test model depth thy =
       val _ = Proof_Context.read_const {proper = true, strict = false} ctx model
       val ctx' =
         (Code_Target.export_code true [Code.read_const (Local_Theory.exit_global ctx) model] [((("Haskell", ""), SOME ({physical = false}, (Path.explode "animate", Position.none))), [])] ctx)
-        |> prep_testing (dlock_test_file model depth (Context.theory_name thy))
+        |> prep_testing (dlock_test_file model depth (Context.theory_name {long = false} thy))
   in thy
   end 
 
@@ -128,7 +128,7 @@ fun event_test model chan depth thy =
       val _ = Proof_Context.read_const {proper = true, strict = false} ctx chan
       val ctx' =
         (Code_Target.export_code true [Code.read_const (Local_Theory.exit_global ctx) model] [((("Haskell", ""), SOME ({physical = false}, (Path.explode "animate", Position.none))), [])] ctx)
-        |> prep_testing (event_test_file model chan depth (Context.theory_name thy))
+        |> prep_testing (event_test_file model chan depth (Context.theory_name {long = false} thy))
   in thy
   end 
 
