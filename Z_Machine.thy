@@ -1,6 +1,6 @@
 theory Z_Machine
   imports Z_Operations Z_Animator Z_Testing "Z_Toolkit.Z_Toolkit" 
-    "HOL-Library.Code_Target_Numeral" "ITree_Simulation.Code_Rational"
+    "HOL-Library.Code_Target_Numeral" "ITree_Simulation.Code_Rational" "ITree_UTP.ITree_Random"
     "Explorer.Explorer" Show_Record
   keywords "zmachine" "zoperation" "zinit" :: "thy_decl_block"
     and "over" "init" "invariant" "operations" "until" "params" "pre" "update" "\<in>" "promote" "emit"
