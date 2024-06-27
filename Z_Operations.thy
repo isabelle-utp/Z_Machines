@@ -15,19 +15,23 @@ subsection \<open> Operations \<close>
 text \<open> In the most basic form, and operation is simply an indexed Kleisli tree. The index type
   @{typ 'a} represents the inputs and outputs of the operation. \<close>
 
-type_synonym ('e, 'a, 's) operation = "'a \<Rightarrow> ('e, 's) htree"
+type_synonym ('e, 'a, 'b, 's) operation = "'a \<Rightarrow> 's \<Rightarrow> ('e, 'b \<times> 's) itree"
 
 text \<open> An operation is constructed from a precondition, update, and postcondition, all of which
   are parameterised. \<close>
 
-definition mk_zop :: "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree)" where
-"mk_zop P \<sigma> Q = (\<lambda> v. assume (P v) ;; assert (Q v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a)"
+term proc_ret
 
-abbreviation (input) "emit_op \<equiv> mk_zop (\<lambda> p. (True)\<^sub>e) (\<lambda> p. [\<leadsto>]) (\<lambda> p. (True)\<^sub>e)"
+definition mk_zop :: 
+  "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> 'b) \<Rightarrow> ('e, 'a, 'b, 's) operation" where
+"mk_zop P \<sigma> Q R = (\<lambda> v. assume (P v) ;; assert (Q v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a ;; proc_ret (R v))"
+
+abbreviation (input) "emit_op \<equiv> mk_zop (\<lambda> p. (True)\<^sub>e) (\<lambda> p. [\<leadsto>]) (\<lambda> p. (True)\<^sub>e) (\<lambda> p. (())\<^sub>e)"
 
 text \<open> An operation requires that precondition holds, and that following the update the postcondition(s)
   also hold. \<close>
 
+(*
 lemma wp_zop [wp, code_unfold]: "wp (mk_zop P \<sigma> Q v) b = [\<lambda> \<s>. P v \<s> \<and> Q v \<s> \<and> (\<sigma> v \<dagger> [\<lambda> \<s>. b \<s>]\<^sub>e) \<s>]\<^sub>e"
   by (simp add: mk_zop_def wp)
 
@@ -42,6 +46,7 @@ lemma itree_rel_zop [itree_rel]: "itree_rel (mk_zop P \<sigma> Q v) = {(x, z). P
 
 lemma mk_zop_state_sat: "\<lbrakk> P v s; Q v s \<rbrakk> \<Longrightarrow> mk_zop P \<sigma> Q v s = Ret (\<sigma> v s)"
   by (simp add: mk_zop_def seq_itree_def kleisli_comp_def assume_def test_def assigns_def)
+*)
 
 subsection \<open> Promotion \<close>
 
@@ -88,7 +93,8 @@ text \<open> Promoting an operation first checks whether the promotion lens is d
   index. If not, it deadlocks. Otherwise, the operation is run on the local state, which is
   then injected back into the global state. \<close>
 
-definition promote_operation :: "('ls \<Longrightarrow> 'g) \<Rightarrow> ('i \<Rightarrow> 'l \<Longrightarrow> 'ls) \<Rightarrow> ('e, 'a, 'l) operation \<Rightarrow> ('e, 'i \<times> 'a, 'g) operation" where
+(*
+definition promote_operation :: "('ls \<Longrightarrow> 'g) \<Rightarrow> ('i \<Rightarrow> 'l \<Longrightarrow> 'ls) \<Rightarrow> ('e, 'a, 'b, 'l) operation \<Rightarrow> ('e, 'i \<times> 'a, 'b, 'g) operation" where
 "promote_operation x pl P = 
   (let a = promotion_lens x pl in (\<lambda> (i, v). promote_itree (a i) (P v)))"
 
@@ -120,5 +126,6 @@ method zpog uses add =
    ((clarsimp del: notI)?; 
     (((erule conjE | rule conjI | erule disjE | rule impI); (clarsimp del: notI)?)+)?))
 method zpog_full uses add = (zpog add: z_locale_defs add)
+*)
 
 end

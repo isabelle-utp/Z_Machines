@@ -17,12 +17,22 @@ abbreviation input_in_where_choice
   :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('s \<Rightarrow> bool) \<times> ('e, 's) htree) \<Rightarrow> 's \<Rightarrow> 'e \<Zpfun> ('e, 's) itree" where
   "input_in_where_choice c A P \<equiv> (\<lambda> s. (\<lambda> e \<in> build\<^bsub>c\<^esub> ` A s | fst (P (the (match\<^bsub>c\<^esub> e))) s \<bullet> snd (P (the (match\<^bsub>c\<^esub> e))) s))"
 
-definition zop_event :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree) \<Rightarrow> ('e, 's) htree" where
-[code_unfold]: "zop_event c A zop = (\<lambda> s. Vis (prism_fun c (A s) (\<lambda> v. (pre (zop v) s, zop v s))))"
+term prism_fun
 
-lemma hl_zop_event [hoare_safe]: "\<lbrakk> \<And> p. \<^bold>{P\<^bold>} zop p \<^bold>{Q\<^bold>} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A zop \<^bold>{Q\<^bold>}"
-  by (auto elim!: trace_to_VisE simp add: zop_event_def hoare_alt_def)
-     (metis (no_types, lifting) IntE mem_Collect_eq pabs_apply pdom_pabs prism_fun_def snd_conv)
+definition zop_event :: 
+  "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> 
+   ('a \<Rightarrow> 's \<Rightarrow> ('e, 'b \<times> 's) itree) \<Rightarrow> 
+   's \<Rightarrow> ('e, 's) itree" where
+[code_unfold]: 
+  "zop_event c A d zop = 
+    (\<lambda> s. Vis (prism_fun c (A s) 
+               (\<lambda> v. (pre (zop v) s, zop v s \<bind> (\<lambda> (b, s'). Vis {build\<^bsub>d\<^esub> b \<mapsto> Ret s'})))))"
+
+definition "itree_rdrop P = (P ;; rdrop)" 
+
+lemma hl_zop_event [hoare_safe]: "\<lbrakk> \<And> p. \<^bold>{P\<^bold>} zop p ;; rdrop \<^bold>{Q\<^bold>} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A d zop \<^bold>{Q\<^bold>}"
+  apply (auto elim!: trace_to_VisE simp add: zop_event_def hoare_alt_def)
+  oops
 
 lemma zop_event_is_event_block: 
   "\<lbrakk> wb_prism c \<rbrakk> \<Longrightarrow> zop_event c A (mk_zop P \<sigma> Q) = event_block c A (\<lambda> p. ([\<lambda> s. P p s \<and> Q p s]\<^sub>e, \<sigma> p))"
@@ -32,12 +42,6 @@ lemma zop_event_is_event_block:
 lemma pdom_zop_event: "wb_prism c \<Longrightarrow> pdom (zop_event c A zop s) = {e. e \<in> build\<^bsub>c\<^esub> ` A s \<and> pre (zop (the (match\<^bsub>c\<^esub> e))) s}"
   by (simp add: zop_event_def dom_prism_fun, auto)
 *)
-
-definition operation :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('e, 'a, 's) operation \<Rightarrow> ('e, 's) htree" where
-"operation c P = c?(v) | pre (P v) \<rightarrow> P v"
-
-definition io_operation :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('a \<Rightarrow> ('e, 'b \<times> 's) htree) \<Rightarrow> ('e, 's) htree" where
-"io_operation c d P = undefined"
 
 text \<open> A machine has an initialisation and a list of operations. \<close>
 
