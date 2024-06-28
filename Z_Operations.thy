@@ -29,8 +29,14 @@ abbreviation (input) "emit_op \<equiv> mk_zop (\<lambda> p. (True)\<^sub>e) (\<l
 text \<open> An operation requires that precondition holds, and that following the update the postcondition(s)
   also hold. \<close>
 
+lemma pre_proc_ret: "pre (proc_ret e) = (\<lambda> s. True)"
+  by (simp add: wp_alt_def proc_ret_def)
+
+lemma pre_zop [wp, code_unfold]: "pre (mk_zop P \<sigma> Q R v) = [\<lambda> \<s>. P v \<s> \<and> Q v \<s>]\<^sub>e"
+  by (simp add: mk_zop_def pre_proc_ret wp, subst_eval)
+
 (*
-lemma wp_zop [wp, code_unfold]: "wp (mk_zop P \<sigma> Q v) b = [\<lambda> \<s>. P v \<s> \<and> Q v \<s> \<and> (\<sigma> v \<dagger> [\<lambda> \<s>. b \<s>]\<^sub>e) \<s>]\<^sub>e"
+lemma wp_zop [wp, code_unfold]: "wp (mk_zop P \<sigma> Q R v) b = [\<lambda> \<s>. P v \<s> \<and> Q v \<s> \<and> (\<sigma> v \<dagger> [\<lambda> \<s>. b \<s>]\<^sub>e) \<s>]\<^sub>e"
   by (simp add: mk_zop_def wp)
 
 lemma wlp_zop [wp, code_unfold]: "wlp (mk_zop P \<sigma> Q v) b = [\<lambda> \<s>. P v \<s> \<longrightarrow> Q v \<s> \<longrightarrow> (\<sigma> v \<dagger> [\<lambda> \<s>. b \<s>]\<^sub>e) \<s>]\<^sub>e"

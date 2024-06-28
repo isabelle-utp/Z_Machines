@@ -217,18 +217,26 @@ code_reserved Haskell List_Set
 
 (*
 zstore st =
-  x :: int
+  buf :: "int list"
+  val :: "int"
 
-zoperation MyOp =
+zoperation Input =
   over st
-  output "x"
+  params x\<in>"{0..3::int}"
+  update "[buf \<leadsto> buf @ [x]]"
 
-zmachine MyMachine =
+zoperation Output =
   over st
-  init "[x \<leadsto> 0]"
-  operations MyOp
+  pre "length buf > 0"
+  update "[val \<leadsto> hd buf, buf \<leadsto> tl buf]"
+  output "val"
 
-animate MyMachine
+zmachine Buffer =
+  over st
+  init "[buf \<leadsto> []]"
+  operations Input Output
+
+animate Buffer
 *)
 
 end
