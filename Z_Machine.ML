@@ -5,7 +5,7 @@ structure Z_Machine = struct
 type param = string * string
 
 datatype operation_body =
-  OperDefn of {params: param list, pre: string list, update: string, guard: string list} |
+  OperDefn of {params: param list, pre: string list, update: string, guard: string list, output: string} |
   OperComp of {params: param list, body: string} |
   OperProm of {promop: string, plens: string} |
   OperEmit of {emit: string}
@@ -52,7 +52,7 @@ fun mk_chan_show_fun tname ops ctx =
   let val typ = Syntax.read_typ ctx tname in
   Function_Fun.add_fun 
     [(Binding.name ("show_" ^ tname), SOME (typ --> @{typ "String.literal"}), NoSyn)]
-    (map (fn n => ((Binding.empty_atts, mk_chan_show_eq n ctx), [], [])) ops)
+    (map (fn n => ((Binding.empty_atts, mk_chan_show_eq n ctx), [], [])) (ops @ map (fn n => n ^ "Out") ops))
     (Function_Fun.fun_config) ctx
   end
 
@@ -103,7 +103,7 @@ fun mk_zinit (Init {name = n, state = s, update = upd}) ctx =
            , check_term ctx (Type.constraint (st --> st) (parse_term ctx upd)))) ctx)
   end;
 
-fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = pre, update = upd, guard = g}}) ctx =
+fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = pre, update = upd, guard = g, output = ot}}) ctx =
   let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
       val pss = (map (fn (p, t) => (p, lift_expr ctx ((parse_term ctx t)))) ps)
       val pset = params_set (map snd pss)
@@ -118,12 +118,15 @@ fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = 
          lambda (free state_id) 
                 (mk_conj (const @{const_name Set.member} $ ppat $ (pset $ Bound 0)
                          , mk_lift_expr ctx (foldr1 mk_conj ((map (parse_term ctx) g))) $ Bound 0)) 
-
+      val poutput = 
+         lambda (free state_id) 
+                ((mk_lift_expr ctx (parse_term ctx ot)) $ Bound 0) 
       val body = ( 
               (Const (@{const_name "mk_zop"}, (parm --> st --> dummyT) --> dummyT)
                 $ tupled_lambda ppat (SEXP $ ppre))
                 $ tupled_lambda ppat (Type.constraint (st --> st) (parse_term ctx upd))
                 $ tupled_lambda ppat (SEXP $ pguard)
+                $ tupled_lambda ppat (SEXP $ poutput)
                 )
 
   in def_zop n set st body ctx
@@ -173,7 +176,16 @@ fun get_zop_ptype n ctx =
   case Proof_Context.read_const {proper = false, strict = false} ctx n of
     Const (_, Type (@{type_name fun}, [a, _])) => a |
     _ => raise Match;
-      
+    
+fun get_zop_outtype n ctx = 
+  case Proof_Context.read_const {proper = false, strict = false} ctx n of
+    Const (_, Type (@{type_name fun}, 
+              [_, Type (@{type_name fun}, 
+                  [_, Type (@{type_name itree}, 
+                      [_, Type (@{type_name prod}, [a, _])])])])) => a |
+    _ => raise Match;
+
+  
 fun read_const_name ctx n =
   case Proof_Context.read_const {proper = false, strict = false} ctx n of
     Const (n', _) => n' |
@@ -184,7 +196,7 @@ fun zmachine_body_sem n st init inve ops ends ctx =
   let open Syntax; open HOLogic; open Proof_Context
       val oplist = 
             mk_list dummyT 
-              (map (fn n => const @{const_name zop_event} $ read_const {proper = false, strict = false} ctx (firstLower n) $ const (read_const_name ctx (zop_type n)) $ const (read_const_name ctx n)) ops)
+              (map (fn n => const @{const_name zop_event} $ read_const {proper = false, strict = false} ctx (firstLower n) $ const (read_const_name ctx (zop_type n)) $ read_const {proper = false, strict = false} ctx (firstLower n ^ "Out") $  const (read_const_name ctx n)) ops)
   in snd (Local_Theory.define 
            ((Binding.name n, NoSyn)
          , ((Binding.name (n ^ "_def")
@@ -196,7 +208,8 @@ fun chantype_name n = n ^ "_chan"
 
 fun zmachine_sem (ZMachine {name = n, state = s, init = i, inv = inv, operations = ops, ends = e}) ctx =
   let open Syntax; open HOLogic; open Lift_Expr
-    val cs = map (fn n => (firstLower n, YXML.content_of (string_of_typ ctx (get_zop_ptype n ctx)))) ops
+    val cs = map (fn n => (firstLower n, YXML.content_of (string_of_typ ctx (get_zop_ptype n ctx)))) ops @
+             map (fn n => (firstLower n ^ "Out", YXML.content_of (string_of_typ ctx (get_zop_outtype n ctx)))) ops
     val st = read_typ ctx s
     val inve = mk_lift_expr ctx (parse_term ctx inv)
     val init = parse_term ctx i
@@ -216,8 +229,9 @@ val parse_operdefn =
   ((Scan.optional (@{keyword "params"} |-- repeat1 parse_param) []) --
   (Scan.optional (@{keyword "pre"} |-- repeat1 term) ["True"]) --
   (Scan.optional (@{keyword "update"} |-- term) "[\<leadsto>]") --
-  (Scan.optional (@{keyword "where"} |-- repeat1 term) ["True"])
-  >> (fn (((ps, g), upd), post) => OperDefn {params = ps, pre = g, update = upd, guard = post}))
+  (Scan.optional (@{keyword "where"} |-- repeat1 term) ["True"]) --
+  (Scan.optional (@{keyword "output"} |-- term) "()")
+  >> (fn ((((ps, g), upd), post), ot) => OperDefn {params = ps, pre = g, update = upd, guard = post, output = ot}))
   end
 
 val parse_opercomp = 

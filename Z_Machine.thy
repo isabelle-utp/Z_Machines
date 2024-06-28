@@ -3,7 +3,7 @@ theory Z_Machine
     "HOL-Library.Code_Target_Numeral" "ITree_Simulation.Code_Rational" "ITree_UTP.ITree_Random"
     "Explorer.Explorer" Show_Record
   keywords "zmachine" "zoperation" "zinit" :: "thy_decl_block"
-    and "over" "init" "invariant" "operations" "until" "params" "pre" "update" "\<in>" "promote" "emit"
+    and "over" "init" "invariant" "operations" "until" "params" "output" "pre" "update" "\<in>" "promote" "emit"
 begin
 
 named_theorems z_machine_defs
@@ -22,7 +22,7 @@ term prism_fun
 definition zop_event :: 
   "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> 
    ('a \<Rightarrow> 's \<Rightarrow> ('e, 'b \<times> 's) itree) \<Rightarrow> 
-   's \<Rightarrow> ('e, 's) itree" where
+   ('e, 's) htree" where
 [code_unfold]: 
   "zop_event c A d zop = 
     (\<lambda> s. Vis (prism_fun c (A s) 
@@ -34,7 +34,8 @@ lemma hl_zop_event [hoare_safe]: "\<lbrakk> \<And> p. \<^bold>{P\<^bold>} zop p 
 
 lemma zop_event_is_event_block: 
   "\<lbrakk> wb_prism c \<rbrakk> \<Longrightarrow> zop_event c A (mk_zop P \<sigma> Q) = event_block c A (\<lambda> p. ([\<lambda> s. P p s \<and> Q p s]\<^sub>e, \<sigma> p))"
-  by (auto intro: prism_fun_cong2 simp add: zop_event_def event_block_def wp usubst fun_eq_iff mk_zop_state_sat)
+  apply (auto intro: prism_fun_cong2 simp add: zop_event_def event_block_def wp usubst fun_eq_iff mk_zop_state_sat)
+  oops
 
 (*
 lemma pdom_zop_event: "wb_prism c \<Longrightarrow> pdom (zop_event c A zop s) = {e. e \<in> build\<^bsub>c\<^esub> ` A s \<and> pre (zop (the (match\<^bsub>c\<^esub> e))) s}"
@@ -213,5 +214,21 @@ code_printing
 | class_instance "set" :: "show" \<rightharpoonup> (Haskell) -
 
 code_reserved Haskell List_Set
+
+(*
+zstore st =
+  x :: int
+
+zoperation MyOp =
+  over st
+  output "x"
+
+zmachine MyMachine =
+  over st
+  init "[x \<leadsto> 0]"
+  operations MyOp
+
+animate MyMachine
+*)
 
 end

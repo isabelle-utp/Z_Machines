@@ -91,10 +91,9 @@ text \<open> Promoting an operation first checks whether the promotion lens is d
   index. If not, it deadlocks. Otherwise, the operation is run on the local state, which is
   then injected back into the global state. \<close>
 
-(*
 definition promote_operation :: "('ls \<Longrightarrow> 'g) \<Rightarrow> ('i \<Rightarrow> 'l \<Longrightarrow> 'ls) \<Rightarrow> ('e, 'a, 'b, 'l) operation \<Rightarrow> ('e, 'i \<times> 'a, 'b, 'g) operation" where
 "promote_operation x pl P = 
-  (let a = promotion_lens x pl in (\<lambda> (i, v). promote_itree (a i) (P v)))"
+  (let a = promotion_lens x pl in (\<lambda> (i, v). promote_iproc (a i) (P v)))"
 
 text \<open> The following notation allows us to promote an operation using the inferred collection lens. \<close>
 
@@ -104,6 +103,7 @@ translations "_promote_op a P" == "CONST promote_operation a (CONST collection_l
 text \<open> Promotion an operation constructed from a precondition and update requires that we lift
        the underlying expressions and update. \<close>
 
+(*
 lemma promote_mk_zop [wp, code_unfold]:
   "promote_operation x cl (mk_zop P \<sigma> Q) 
     = mk_zop 
@@ -112,6 +112,7 @@ lemma promote_mk_zop [wp, code_unfold]:
         (\<lambda> (a, p). (Q p) \<up> x:cl(a))"
   by (auto simp add: promote_operation_def mk_zop_def Let_unfold promotion_lens_def fun_eq_iff promote_itree_def
       assume_def seq_itree_def kleisli_comp_def test_def expr_defs assigns_def lens_defs lens_source_def)
+*)
 
 subsection \<open> Proof Automation \<close>
 
@@ -124,6 +125,5 @@ method zpog uses add =
    ((clarsimp del: notI)?; 
     (((erule conjE | rule conjI | erule disjE | rule impI); (clarsimp del: notI)?)+)?))
 method zpog_full uses add = (zpog add: z_locale_defs add)
-*)
 
 end
