@@ -28,8 +28,6 @@ definition zop_event ::
     (\<lambda> s. Vis (prism_fun c (A s) 
                (\<lambda> v. (pre (zop v) s, zop v s \<bind> (\<lambda> (b, s'). Vis {build\<^bsub>d\<^esub> b \<mapsto> Ret s'})))))"
 
-definition "itree_rdrop P = (P ;; rdrop)" 
-
 lemma hl_zop_event [hoare_safe]: "\<lbrakk> \<And> p. \<^bold>{P\<^bold>} zop p ;; rdrop \<^bold>{Q\<^bold>} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A d zop \<^bold>{Q\<^bold>}"
   apply (auto elim!: trace_to_VisE simp add: zop_event_def hoare_alt_def)
   oops

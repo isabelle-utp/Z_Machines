@@ -20,8 +20,6 @@ type_synonym ('e, 'a, 'b, 's) operation = "'a \<Rightarrow> 's \<Rightarrow> ('e
 text \<open> An operation is constructed from a precondition, update, and postcondition, all of which
   are parameterised. \<close>
 
-term proc_ret
-
 definition mk_zop :: 
   "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> 'b) \<Rightarrow> ('e, 'a, 'b, 's) operation" where
 "mk_zop P \<sigma> Q R = (\<lambda> v. assume (P v) ;; assert (Q v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a ;; proc_ret (R v))"
