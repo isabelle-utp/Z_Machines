@@ -24,6 +24,9 @@ definition mk_zop ::
   "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> 'b) \<Rightarrow> ('e, 'a, 'b, 's) operation" where
 "mk_zop P \<sigma> Q R = (\<lambda> v. assume (P v) ;; assert (Q v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a ;; proc_ret (R v))"
 
+lemma dlf_mk_zop [wp]: "dfp (mk_zop P \<sigma> Q R v) = (@(P v) \<longrightarrow> @(Q v))\<^sub>e"
+  by (simp add: mk_zop_def wp)
+
 abbreviation (input) "emit_op \<equiv> mk_zop (\<lambda> p. (True)\<^sub>e) (\<lambda> p. [\<leadsto>]) (\<lambda> p. (True)\<^sub>e) (\<lambda> p. (())\<^sub>e)"
 
 text \<open> An operation requires that precondition holds, and that following the update the postcondition(s)

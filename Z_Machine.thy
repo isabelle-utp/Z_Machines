@@ -17,8 +17,7 @@ abbreviation input_in_where_choice
   :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('s \<Rightarrow> bool) \<times> ('e, 's) htree) \<Rightarrow> 's \<Rightarrow> 'e \<Zpfun> ('e, 's) itree" where
   "input_in_where_choice c A P \<equiv> (\<lambda> s. (\<lambda> e \<in> build\<^bsub>c\<^esub> ` A s | fst (P (the (match\<^bsub>c\<^esub> e))) s \<bullet> snd (P (the (match\<^bsub>c\<^esub> e))) s))"
 
-term prism_fun
-
+(*
 definition zop_event :: 
   "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> 
    ('a \<Rightarrow> 's \<Rightarrow> ('e, 'b \<times> 's) itree) \<Rightarrow> 
@@ -27,16 +26,23 @@ definition zop_event ::
   "zop_event c A d zop = 
     (\<lambda> s. Vis (prism_fun c (A s) 
                (\<lambda> v. (pre (zop v) s, zop v s \<bind> (\<lambda> (b, s'). Vis {build\<^bsub>d\<^esub> b \<mapsto> Ret s'})))))"
+*)
 
-lemma hl_zop_event [hoare_safe]: "\<lbrakk> \<And> p. \<^bold>{P\<^bold>} zop p ;; rdrop \<^bold>{Q\<^bold>} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A d zop \<^bold>{Q\<^bold>}"
-  apply (auto elim!: trace_to_VisE simp add: zop_event_def hoare_alt_def)
-  oops
+definition zop_event :: 
+  "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> 
+   ('a \<Rightarrow> 's \<Rightarrow> ('e, 'b \<times> 's) itree) \<Rightarrow> 
+   ('e, 's) htree" where
+[code_unfold]: 
+  "zop_event c A d zop = (c?(x):A | pre (zop x) \<rightarrow> output_return (zop x) d)"
 
-lemma zop_event_is_event_block: 
-  "\<lbrakk> wb_prism c \<rbrakk> \<Longrightarrow> zop_event c A (mk_zop P \<sigma> Q) = event_block c A (\<lambda> p. ([\<lambda> s. P p s \<and> Q p s]\<^sub>e, \<sigma> p))"
-  apply (auto intro: prism_fun_cong2 simp add: zop_event_def event_block_def wp usubst fun_eq_iff mk_zop_state_sat)
-  oops
-
+lemma hl_zop_event [hoare_safe]: "\<lbrakk> wb_prism c; \<And> p. \<^bold>{P \<and> \<guillemotleft>p\<guillemotright> \<in> A \<and> pre (zop p)\<^bold>} zop p ;; rdrop \<^bold>{Q\<^bold>} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A d zop \<^bold>{Q\<^bold>}"
+  apply (simp add: zop_event_def)
+  apply (rule hoare_safe)
+   apply (simp)
+  apply (rule hoare_safe)
+  apply simp
+  done
+  
 (*
 lemma pdom_zop_event: "wb_prism c \<Longrightarrow> pdom (zop_event c A zop s) = {e. e \<in> build\<^bsub>c\<^esub> ` A s \<and> pre (zop (the (match\<^bsub>c\<^esub> e))) s}"
   by (simp add: zop_event_def dom_prism_fun, auto)
@@ -99,7 +105,7 @@ method deadlock_free_invs uses invs =
 
 method deadlock_free uses invs =
   ((deadlock_free_invs invs: invs),
-   (simp add: zop_event_is_event_block extchoice_event_block z_defs z_locale_defs wp Bex_Sum_iff;
+   (simp add: zop_event_def extchoice_inp_where_combine extchoice_event_block z_defs z_locale_defs wp Ball_Sum_iff Bex_Sum_iff;
     expr_simp add: split_sum_all split_sum_ex;
     ((rule conjI allI impI | erule conjE disjE exE)+; rename_alpha_vars?)?))
 
@@ -215,7 +221,6 @@ code_printing
 
 code_reserved Haskell List_Set
 
-(*
 zstore st =
   buf :: "int list"
   val :: "int"
@@ -236,7 +241,12 @@ zmachine Buffer =
   init "[buf \<leadsto> []]"
   operations Input Output
 
+lemma "deadlock_free Buffer"
+  apply deadlock_free
+  apply auto
+  done
+
 animate Buffer
-*)
+
 
 end
