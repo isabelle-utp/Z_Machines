@@ -32,11 +32,18 @@ abbreviation (input) "emit_op \<equiv> mk_zop (\<lambda> p. (True)\<^sub>e) (\<l
 text \<open> An operation requires that precondition holds, and that following the update the postcondition(s)
   also hold. \<close>
 
+lemma wlp_proc_ret [wp]: "wlp (proc_ret e) retp[r. @(P r)] = (\<forall> r. \<guillemotleft>r\<guillemotright> = e \<longrightarrow> @(P r))\<^sub>e"
+  by (auto simp add: wlp_alt_def proc_ret_def ret_pred_def)
+
 lemma pre_proc_ret: "pre (proc_ret e) = (\<lambda> s. True)"
   by (simp add: wp_alt_def proc_ret_def)
 
 lemma pre_zop [wp, code_unfold]: "pre (mk_zop P \<sigma> Q R v) = [\<lambda> \<s>. P v \<s> \<and> Q v \<s>]\<^sub>e"
   by (simp add: mk_zop_def pre_proc_ret wp, subst_eval)
+
+lemma wlp_zop [wp]: 
+  "wlp (mk_zop P \<sigma> Q R v) retp[r. b] = [\<lambda> \<s>. P v \<s> \<longrightarrow> Q v \<s> \<longrightarrow> (\<sigma> v \<dagger> [\<lambda> \<s>. b \<s>]\<^sub>e) \<s>]\<^sub>e"
+  by (simp add: mk_zop_def pre_proc_ret wp)
 
 (*
 lemma wp_zop [wp, code_unfold]: "wp (mk_zop P \<sigma> Q R v) b = [\<lambda> \<s>. P v \<s> \<and> Q v \<s> \<and> (\<sigma> v \<dagger> [\<lambda> \<s>. b \<s>]\<^sub>e) \<s>]\<^sub>e"
@@ -122,6 +129,16 @@ lemma promote_mk_zop [wp, code_unfold]:
   by (auto simp add: promote_operation_def mk_zop_def Let_unfold promotion_lens_def fun_eq_iff promote_itree_def
       assume_def seq_itree_def kleisli_comp_def test_def expr_defs assigns_def lens_defs lens_source_def)
 *)
+
+syntax
+  "_preserves"       :: "logic \<Rightarrow> logic \<Rightarrow> logic" (infix "preserves" 40)
+  "_preserves_under" :: "logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("_ preserves _ under _" [40, 0, 40] 40)
+  "_establishes"     :: "logic \<Rightarrow> logic \<Rightarrow> logic" (infix "establishes" 40)
+
+translations
+  "_preserves S P" => "H{P} S {_. P}"
+  "_preserves_under S P Q" => "H{P \<and> Q} S {_. P}"
+  "_establishes \<sigma> P" => "H{CONST True} \<langle>\<sigma>\<rangle>\<^sub>a {P}"
 
 subsection \<open> Proof Automation \<close>
 

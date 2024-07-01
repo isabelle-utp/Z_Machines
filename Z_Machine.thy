@@ -35,13 +35,18 @@ definition zop_event ::
 [code_unfold]: 
   "zop_event c A d zop = (c?(x):A | pre (zop x) \<rightarrow> output_return (zop x) d)"
 
-lemma hl_zop_event [hoare_safe]: "\<lbrakk> wb_prism c; \<And> p. \<^bold>{P \<and> \<guillemotleft>p\<guillemotright> \<in> A \<and> pre (zop p)\<^bold>} zop p ;; rdrop \<^bold>{Q\<^bold>} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A d zop \<^bold>{Q\<^bold>}"
+lemma hl_zop_event_full: 
+  "\<lbrakk> wb_prism c; \<And> p. H{P \<and> \<guillemotleft>p\<guillemotright> \<in> A \<and> pre (zop p)} zop p {ret. Q} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A d zop \<^bold>{Q\<^bold>}"
   apply (simp add: zop_event_def)
   apply (rule hoare_safe)
    apply (simp)
   apply (rule hoare_safe)
   apply simp
   done
+
+lemma hl_zop_event: 
+  "\<lbrakk> wb_prism c; \<And> p. H{P} zop p {ret. Q} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A d zop \<^bold>{Q\<^bold>}"
+  by (simp add: hl_proc_conj_pre hl_zop_event_full)
   
 (*
 lemma pdom_zop_event: "wb_prism c \<Longrightarrow> pdom (zop_event c A zop s) = {e. e \<in> build\<^bsub>c\<^esub> ` A s \<and> pre (zop (the (match\<^bsub>c\<^esub> e))) s}"
@@ -77,7 +82,7 @@ lemma deadlock_free_z_machine:
   fixes Inv :: "'s::default \<Rightarrow> bool"
   assumes 
     "Init establishes Inv"
-    "\<And> E. E\<in>set Events \<Longrightarrow> E preserves Inv"
+    "\<And> E. E\<in>set Events \<Longrightarrow> H{Inv} E {Inv}"
     "`\<not> End \<and> Inv \<longrightarrow> dfp (foldr (\<box>) Events Stop)`"
   shows "deadlock_free (z_machine Init Inv Events End)"
 proof (simp add: z_machine_def z_machine_main_def, rule deadlock_free_processI, rule deadlock_free_init_iterate[where P="Inv"], rule assms(1), simp_all)
@@ -94,7 +99,7 @@ proof (simp add: z_machine_def z_machine_main_def, rule deadlock_free_processI, 
     using assms(3) by auto
 qed
 
-lemma preserves_trivial: "P preserves True"
+lemma preserves_trivial: "H{True} P {True}"
   by (simp add: hoare_alt_def)
 
 method deadlock_free_invs uses invs =
@@ -220,33 +225,5 @@ code_printing
 | class_instance "set" :: "show" \<rightharpoonup> (Haskell) -
 
 code_reserved Haskell List_Set
-
-zstore st =
-  buf :: "int list"
-  val :: "int"
-
-zoperation Input =
-  over st
-  params x\<in>"{0..3::int}"
-  update "[buf \<leadsto> buf @ [x]]"
-
-zoperation Output =
-  over st
-  pre "length buf > 0"
-  update "[val \<leadsto> hd buf, buf \<leadsto> tl buf]"
-  output "val"
-
-zmachine Buffer =
-  over st
-  init "[buf \<leadsto> []]"
-  operations Input Output
-
-lemma "deadlock_free Buffer"
-  apply deadlock_free
-  apply auto
-  done
-
-animate Buffer
-
 
 end
