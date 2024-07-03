@@ -40,6 +40,8 @@ zmachine Buffer =
   invariant "Buffer_state_inv"
   operations Input Output State
 
+thm Buffer_def
+
 lemma Buffer_deadlock_free: "VAL \<noteq> {} \<Longrightarrow> deadlock_free Buffer"
   by deadlock_free
 

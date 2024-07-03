@@ -103,6 +103,12 @@ fun mk_zinit (Init {name = n, state = s, update = upd}) ctx =
            , check_term ctx (Type.constraint (st --> st) (parse_term ctx upd)))) ctx)
   end;
 
+fun gen n ty term ctx = snd (Local_Theory.define 
+  ((Binding.name n, NoSyn)
+  , ((Binding.name (n ^ "_def")
+  , @{attributes [code_unfold, z_defs]})
+  , Syntax.check_term ctx (Type.constraint ty term))) ctx);
+
 fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = pre, update = upd, guard = g, output = ot}}) ctx =
   let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
       val pss = (map (fn (p, t) => (p, lift_expr ctx ((parse_term ctx t)))) ps)
@@ -128,8 +134,8 @@ fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = 
                 $ tupled_lambda ppat (SEXP $ pguard)
                 $ tupled_lambda ppat (SEXP $ poutput)
                 )
-
-  in def_zop n set st body ctx
+  in def_zop n set st body ctx 
+     |> gen (zop_pre n) (parm --> st --> dummyT) (tupled_lambda ppat (SEXP $ ppre))
   end |
      (*
      (* Generate the precondition *)
@@ -147,7 +153,7 @@ mk_zop (Operation {name = n, state = s, body = OperProm {promop = opr, plens = l
   let open Syntax; open Lift_Expr
       val opr' = read_term ctx opr; 
       val pn = fst (dest_Const opr');
-      val opr_type = const (pn ^ "_type"); 
+      val opr_type = const (zop_type pn); 
       val lens' = parse_term ctx lens 
       val st = read_typ ctx s
       val set = check_term ctx (const @{const_name "promoted_type"} $ lens' $ const @{const_name collection_lens} $ opr_type)
@@ -168,8 +174,11 @@ mk_zop (Operation {name = n, state = s, body = OperEmit {emit = e}}) ctx =
   let open Syntax; open HOLogic; open Lift_Expr
   val set = mk_lift_expr ctx (mk_set dummyT [parse_term ctx e])
   val st = read_typ ctx s
+  val parm = dest_setT (range_type (Term.type_of (check_term ctx set)))
   val body = const @{const_abbrev emit_op}
-  in def_zop n set st body ctx
+  in def_zop n set st body ctx 
+     (* Generate precondition *)
+     |> gen (zop_pre n) (parm --> st --> dummyT) (Abs ("p", parm, SEXP $ lambda (free state_id) @{term True}))
   end;
 
 fun get_zop_ptype n ctx =
@@ -196,7 +205,12 @@ fun zmachine_body_sem n st init inve ops ends ctx =
   let open Syntax; open HOLogic; open Proof_Context
       val oplist = 
             mk_list dummyT 
-              (map (fn n => const @{const_name zop_event} $ read_const {proper = false, strict = false} ctx (firstLower n) $ const (read_const_name ctx (zop_type n)) $ read_const {proper = false, strict = false} ctx (firstLower n ^ "_Out") $  const (read_const_name ctx n)) ops)
+              (map (fn n => const @{const_name zop_event} 
+                            $ read_const {proper = false, strict = false} ctx (firstLower n) 
+                            $ const (read_const_name ctx (zop_type n))
+                            $ const (read_const_name ctx (zop_pre n)) 
+                            $ read_const {proper = false, strict = false} ctx (firstLower n ^ "_Out") 
+                            $ const (read_const_name ctx n)) ops)
   in snd (Local_Theory.define 
            ((Binding.name n, NoSyn)
          , ((Binding.name (n ^ "_def")

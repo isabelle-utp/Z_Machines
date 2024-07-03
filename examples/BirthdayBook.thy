@@ -35,7 +35,7 @@ lemma FindBirthday_inv: "FindBirthday n preserves BirthdayBook_inv"
 zoperation Remind =
   over BirthdayBook
   params today\<in>DATE cards\<in>"\<bbbP> NAME"
-  where "cards = {n \<in> known. birthday(n) = today}"
+  pre "cards = {n \<in> known. birthday(n) = today}"
 
 lemma Remind_inv: "Remind (n, d) preserves BirthdayBook_inv"
   by zpog_full

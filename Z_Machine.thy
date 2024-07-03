@@ -31,14 +31,14 @@ definition zop_event ::
 *)
 
 definition zop_event :: 
-  "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> 
+  "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> 
    ('a \<Rightarrow> 's \<Rightarrow> ('e, 'b \<times> 's) itree) \<Rightarrow> 
    ('e, 's) htree" where
 [code_unfold]: 
-  "zop_event c A d zop = (c?(x):A | pre (zop x) \<rightarrow> output_return (zop x) d)"
+  "zop_event c A P d zop = (c?(x):A | @(P x) \<rightarrow> output_return (zop x) d)"
 
 lemma hl_zop_event_full: 
-  "\<lbrakk> wb_prism c; \<And> p. H{P \<and> \<guillemotleft>p\<guillemotright> \<in> A \<and> pre (zop p)} zop p {ret. Q} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A d zop \<^bold>{Q\<^bold>}"
+  "\<lbrakk> wb_prism c; \<And> p. H{P \<and> \<guillemotleft>p\<guillemotright> \<in> A \<and> @(Pre p)} zop p {ret. Q} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A Pre d zop \<^bold>{Q\<^bold>}"
   apply (simp add: zop_event_def)
   apply (rule hoare_safe)
    apply (simp)
@@ -47,7 +47,7 @@ lemma hl_zop_event_full:
   done
 
 lemma hl_zop_event: 
-  "\<lbrakk> wb_prism c; \<And> p. H{P} zop p {ret. Q} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A d zop \<^bold>{Q\<^bold>}"
+  "\<lbrakk> wb_prism c; \<And> p. H{P} zop p {ret. Q} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A Pre d zop \<^bold>{Q\<^bold>}"
   by (simp add: hl_proc_conj_pre hl_zop_event_full)
   
 (*
