@@ -60,14 +60,14 @@ test_event n t p = do { case trs of
                         [] -> putStrLn ("No matching traces found of length <= " ++ show n ++ ".")
                         (tr : _) -> putStrLn ("Trace found: " ++ show tr ++ ".")
                     }
-  where trs = event_traces n t p
+  where trs = event_traces (n * 2) t p
 
 test_dlock :: Show e => Int -> Itree e s -> IO ()
 test_dlock n p = do { case trs of
                         [] -> putStrLn ("No deadlocking traces found of length <= " ++ show n ++ ".")
                         (tr : _) -> putStrLn ("Deadlocks after: " ++ show tr ++ ".")
                     }
-  where trs = dlock_traces n p
+  where trs = dlock_traces (n * 2) p
 \<close>
 
 

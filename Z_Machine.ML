@@ -52,7 +52,7 @@ fun mk_chan_show_fun tname ops ctx =
   let val typ = Syntax.read_typ ctx tname in
   Function_Fun.add_fun 
     [(Binding.name ("show_" ^ tname), SOME (typ --> @{typ "String.literal"}), NoSyn)]
-    (map (fn n => ((Binding.empty_atts, mk_chan_show_eq n ctx), [], [])) (ops @ map (fn n => n ^ "Out") ops))
+    (map (fn n => ((Binding.empty_atts, mk_chan_show_eq n ctx), [], [])) (ops @ map (fn n => n ^ "_Out") ops))
     (Function_Fun.fun_config) ctx
   end
 
@@ -196,7 +196,7 @@ fun zmachine_body_sem n st init inve ops ends ctx =
   let open Syntax; open HOLogic; open Proof_Context
       val oplist = 
             mk_list dummyT 
-              (map (fn n => const @{const_name zop_event} $ read_const {proper = false, strict = false} ctx (firstLower n) $ const (read_const_name ctx (zop_type n)) $ read_const {proper = false, strict = false} ctx (firstLower n ^ "Out") $  const (read_const_name ctx n)) ops)
+              (map (fn n => const @{const_name zop_event} $ read_const {proper = false, strict = false} ctx (firstLower n) $ const (read_const_name ctx (zop_type n)) $ read_const {proper = false, strict = false} ctx (firstLower n ^ "_Out") $  const (read_const_name ctx n)) ops)
   in snd (Local_Theory.define 
            ((Binding.name n, NoSyn)
          , ((Binding.name (n ^ "_def")
@@ -209,7 +209,7 @@ fun chantype_name n = n ^ "_chan"
 fun zmachine_sem (ZMachine {name = n, state = s, init = i, inv = inv, operations = ops, ends = e}) ctx =
   let open Syntax; open HOLogic; open Lift_Expr
     val cs = map (fn n => (firstLower n, YXML.content_of (string_of_typ ctx (get_zop_ptype n ctx)))) ops @
-             map (fn n => (firstLower n ^ "Out", YXML.content_of (string_of_typ ctx (get_zop_outtype n ctx)))) ops
+             map (fn n => (firstLower n ^ "_Out", YXML.content_of (string_of_typ ctx (get_zop_outtype n ctx)))) ops
     val st = read_typ ctx s
     val inve = mk_lift_expr ctx (parse_term ctx inv)
     val init = parse_term ctx i
