@@ -64,6 +64,16 @@ definition z_machine :: "('s::default) subst \<Rightarrow> ('e, 's) htree list \
 [code_unfold]: "z_machine Init Ops = process Init (loop (foldr (\<box>) Ops Stop))"
 *)
 
+syntax
+  "_preserves"       :: "logic \<Rightarrow> logic \<Rightarrow> logic" (infix "preserves" 40)
+  "_preserves_under" :: "logic \<Rightarrow> logic \<Rightarrow> logic \<Rightarrow> logic" ("_ preserves _ under _" [40, 0, 40] 40)
+  "_establishes"     :: "logic \<Rightarrow> logic \<Rightarrow> logic" (infix "establishes" 40)
+
+translations
+  "_preserves S P" => "H{P} S {P}"
+  "_preserves_under S P Q" => "H{P \<and> Q} S {P}"
+  "_establishes \<sigma> P" => "H{CONST True} \<langle>\<sigma>\<rangle>\<^sub>a {P}"
+
 lemma deadlock_free_z_machine:
   fixes Inv :: "'s::default \<Rightarrow> bool"
   assumes 
