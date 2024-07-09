@@ -119,6 +119,13 @@ translations "_promote_op a P" == "CONST promote_operation a (CONST collection_l
 text \<open> Promotion of an operation constructed from a precondition and update requires that we lift
        the underlying expressions and update. \<close>
 
+definition promote_pre :: 
+  "('ls \<Longrightarrow> 'g) 
+    \<Rightarrow> ('i \<Rightarrow> 'l \<Longrightarrow> 'ls) 
+    \<Rightarrow> ('a \<Rightarrow> 'l \<Rightarrow> bool) 
+    \<Rightarrow> 'i \<times> 'a \<Rightarrow> 'g \<Rightarrow> bool" where 
+  "promote_pre x cl P = (\<lambda> (a, p). ((P p) \<up> x:cl(a) \<and> \<^bold>D(x:cl(a)))\<^sub>e)"
+
 lemma promote_mk_zop [wp, code_unfold]:
   "\<lbrakk> vwb_lens x; \<And> i. mwb_lens (cl i) \<rbrakk> \<Longrightarrow>
    promote_operation x cl (mk_zop P \<sigma> Q R) 
