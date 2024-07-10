@@ -17,17 +17,16 @@ text \<open> In the most basic form, and operation is simply an indexed Kleisli 
 
 type_synonym ('e, 'a, 'b, 's) operation = "'a \<Rightarrow> 's \<Rightarrow> ('e, 'b \<times> 's) itree"
 
-text \<open> An operation is constructed from a precondition, update, and postcondition, all of which
-  are parameterised. \<close>
+text \<open> An operation is constructed from a precondition, and update, all of which are parameterised. \<close>
 
 definition mk_zop :: 
-  "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> 'b) \<Rightarrow> ('e, 'a, 'b, 's) operation" where
-"mk_zop P \<sigma> Q R = (\<lambda> v. assume (P v) ;; assert (Q v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a ;; proc_ret (R v))"
+  "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> 'b) \<Rightarrow> ('e, 'a, 'b, 's) operation" where
+"mk_zop P \<sigma> R = (\<lambda> v. assume (P v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a ;; proc_ret (R v))"
 
-lemma dlf_mk_zop [wp]: "dfp (mk_zop P \<sigma> Q R v) = (@(P v) \<longrightarrow> @(Q v))\<^sub>e"
+lemma dlf_mk_zop [wp]: "dfp (mk_zop P \<sigma> R v) = (True)\<^sub>e"
   by (simp add: mk_zop_def wp)
 
-abbreviation (input) "emit_op \<equiv> mk_zop (\<lambda> p. (True)\<^sub>e) (\<lambda> p. [\<leadsto>]) (\<lambda> p. (True)\<^sub>e) (\<lambda> p. (())\<^sub>e)"
+abbreviation (input) "emit_op \<equiv> mk_zop (\<lambda> p. (True)\<^sub>e) (\<lambda> p. [\<leadsto>]) (\<lambda> p. (())\<^sub>e)"
 
 text \<open> An operation requires that precondition holds, and that following the update the postcondition(s)
   also hold. \<close>
@@ -38,11 +37,11 @@ lemma wlp_proc_ret [wp]: "wlp (proc_ret e) retp[r. @(P r)] = (\<forall> r. \<gui
 lemma pre_proc_ret: "pre (proc_ret e) = (\<lambda> s. True)"
   by (simp add: wp_alt_def proc_ret_def)
 
-lemma pre_zop [wp, code_unfold]: "pre (mk_zop P \<sigma> Q R v) = [\<lambda> \<s>. P v \<s> \<and> Q v \<s>]\<^sub>e"
+lemma pre_zop [wp, code_unfold]: "pre (mk_zop P \<sigma> R v) = [\<lambda> \<s>. P v \<s>]\<^sub>e"
   by (simp add: mk_zop_def pre_proc_ret wp, subst_eval)
 
 lemma wlp_zop [wp]: 
-  "wlp (mk_zop P \<sigma> Q R v) retp[r. b] = [\<lambda> \<s>. P v \<s> \<longrightarrow> Q v \<s> \<longrightarrow> (\<sigma> v \<dagger> [\<lambda> \<s>. b \<s>]\<^sub>e) \<s>]\<^sub>e"
+  "wlp (mk_zop P \<sigma> R v) retp[r. b] = [\<lambda> \<s>. P v \<s> \<longrightarrow> (\<sigma> v \<dagger> [\<lambda> \<s>. b \<s>]\<^sub>e) \<s>]\<^sub>e"
   by (simp add: mk_zop_def pre_proc_ret wp)
 
 (*
@@ -124,15 +123,14 @@ definition promote_pre ::
     \<Rightarrow> ('i \<Rightarrow> 'l \<Longrightarrow> 'ls) 
     \<Rightarrow> ('a \<Rightarrow> 'l \<Rightarrow> bool) 
     \<Rightarrow> 'i \<times> 'a \<Rightarrow> 'g \<Rightarrow> bool" where 
-  "promote_pre x cl P = (\<lambda> (a, p). ((P p) \<up> x:cl(a) \<and> \<^bold>D(x:cl(a)))\<^sub>e)"
+[code_unfold]: "promote_pre x cl P = (\<lambda> (a, p). ((P p) \<up> x:cl(a) \<and> \<^bold>D(x:cl(a)))\<^sub>e)"
 
 lemma promote_mk_zop [wp, code_unfold]:
   "\<lbrakk> vwb_lens x; \<And> i. mwb_lens (cl i) \<rbrakk> \<Longrightarrow>
-   promote_operation x cl (mk_zop P \<sigma> Q R) 
+   promote_operation x cl (mk_zop P \<sigma> R) 
     = mk_zop 
         (\<lambda> (a, p). ((P p) \<up> x:cl(a) \<and> \<^bold>D(x:cl(a)))\<^sub>e) 
         (\<lambda> (a, p). (\<sigma> p) \<up>\<^sub>s x:cl(a))
-        (\<lambda> (a, p). (Q p) \<up> x:cl(a))
         (\<lambda> (a, p). (R p) \<up> x:cl(a))"
   by (auto simp add: promote_operation_def mk_zop_def Let_unfold promotion_lens_def fun_eq_iff promote_iproc_def proc_ret_def
       assume_def seq_itree_def kleisli_comp_def test_def expr_defs assigns_def lens_defs lens_source_def)
