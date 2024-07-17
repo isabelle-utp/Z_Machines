@@ -100,7 +100,9 @@ lemma [hoare_lemmas]: "Shine l preserves Dwarf_inv"
   by (zpog_full; auto)
 
 lemma deadlock_free_DwarfSignal: "deadlock_free DwarfSignal"
-  by deadlock_free
+  apply deadlock_free
+  apply blast
+  done
 
 subsection \<open> Requirements \<close>
 

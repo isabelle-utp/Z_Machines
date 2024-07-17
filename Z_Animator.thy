@@ -22,15 +22,15 @@ removeSubstr :: String -> String -> String;
 removeSubstr w "" = "";
 removeSubstr w s@(c:cs) = (if w `isPrefixOf` s then Prelude.drop (Prelude.length w) s else c : removeSubstr w cs);
 
-data EventCont p = InputEvtCont [(String, p)] | OutEvtCont (String, p)
+data EventCont p = MultiEvtCont [(String, p)] | SingleEvtCont (String, p)
 
 showEventCont :: (String, EventCont p) -> String
-showEventCont (n, InputEvtCont _) = n
-showEventCont (n, OutEvtCont (v, _)) = n ++ " " ++ v
+showEventCont (n, MultiEvtCont _) = n
+showEventCont (n, SingleEvtCont (v, _)) = n ++ " " ++ v
 
 eventHierarchy :: [(String, p)] -> [(String, EventCont p)]
 eventHierarchy m = map (\c -> (c,
-                              (\es -> if length es == 1 then OutEvtCont (head es) else InputEvtCont es)
+                              (\es -> if length es == 1 then SingleEvtCont (head es) else MultiEvtCont es)
                               $ map (\(e, p) -> (tail (dropWhile (\x -> x /= ' ') e), p)) 
                               $ filter (isPrefixOf (c ++ " ") . fst) m)) chans
   where
@@ -48,30 +48,35 @@ animate_cnt n (Sil p) =
 animate_cnt n (Vis (Pfun_of_alist [])) = putStrLn "Deadlocked.";
 animate_cnt n t@(Vis (Pfun_of_alist m)) = 
   do { putStrLn ("Operations:" ++ concat (map (\(n, e) -> " (" ++ show n ++ ") " ++ e ++ ";") (zip [1..] (map showEventCont eh))));
+       putStr ("Choose [1-" ++ show (length eh) ++ "]: ");
        e <- getLine;
        if (e == "q" || e == "Q") then
          putStrLn "Animation terminated"
        else
        case (reads e) of
-         []       -> do { putStrLn "No parse"; animate_cnt n t }
-         [(v, _)] -> if (v > length eh)
-                       then do { putStrLn "Rejected"; animate_cnt n t }
-                       else case (snd (eh !! (v - 1))) of
-                              InputEvtCont opts -> 
-                                do { putStrLn ("Parameters:" ++ concat (map (\(n, e) -> " (" ++ show n ++ ") " ++ e ++ ";") (zip [1..] (map fst opts))))
-                                   ; e <- getLine
-                                   ; case (reads e) of
-                                       []       -> do { putStrLn "No parse"; animate_cnt n t }
-                                       [(v, _)] -> if (v > length opts)
-                                                   then do { putStrLn "Rejected"; animate_cnt n t }
-                                                   else animate_cnt 0 (snd (opts !! (v - 1)))
-
-                                   }
-                              OutEvtCont (_, p) -> animate_cnt 0 p
+         []       -> do { putStrLn "Invalid choice, try again."; animate_cnt n t }
+         [(v, _)] -> 
+           if (v > length eh)
+           then do { putStrLn "Rejected"; animate_cnt n t }
+           else case (snd (eh !! (v - 1))) of
+                  MultiEvtCont opts -> 
+                    do { putStrLn ("Parameters:" ++ concat (map (\(n, e) -> " (" ++ show n ++ ") " ++ e ++ ";") (zip [1..] (map fst opts))))
+                       ; putStr ("Choose [1-" ++ show (length opts) ++ "]: ")
+                       ; e <- getLine
+                       ; case (reads e) of
+                           []       -> do { putStrLn "No parse"; animate_cnt n t }
+                           [(v, _)] -> if (v > length opts)
+                                       then do { putStrLn "Rejected"; animate_cnt n t }
+                                       else case snd (opts !! (v - 1)) of 
+                                              Vis (Pfun_of_alist [(e, p')]) -> 
+                                                do { putStrLn ("Response: " ++ show e); putStrLn ""; animate_cnt 0 p' }   
+  
+                       }
+                  SingleEvtCont (_, Vis (Pfun_of_alist [(e, p')])) -> do { putStrLn ("Response: " ++ show e); putStrLn ""; animate_cnt 0 p' }
      }                                                            
   where eh = eventHierarchy (map (\(e, p) -> (Prelude.show e, p)) m);
 animate :: (Eq e, Prelude.Show e, Prelude.Show s) => Itree e s -> Prelude.IO ();
-animate p = do { hSetBuffering stdout NoBuffering; putStrLn ""; putStrLn "Starting Animation..."; animate_cnt 0 p }
+animate p = do { hSetBuffering stdout NoBuffering; putStrLn ""; putStrLn "Starting Animation..."; putStrLn ""; animate_cnt 0 p }
 \<close>
 
 ML \<open> 

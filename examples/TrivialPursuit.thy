@@ -17,9 +17,11 @@ zoperation AnswerLocal =
   pre "c \<notin> s"
   update "[s \<leadsto> s \<union> {c}]"
 
+(*
 zoperation AnswerGlobal' =
   params p\<in>Player c\<in>Colour
   is "AnswerLocal(c) \<Up>\<Up> score[p]"
+*)
 
 zoperation AnswerGlobal =
   promote AnswerLocal in score
@@ -34,7 +36,7 @@ zmachine TrivialPursuit =
   init "[score \<leadsto> (\<lambda> p\<in>Player \<bullet> \<lblot> s \<leadsto> {} \<rblot>), winner \<leadsto> None]"
   operations AnswerGlobal WinGame
   until "winner \<noteq> None"
-   
+
 animate TrivialPursuit
 
 end

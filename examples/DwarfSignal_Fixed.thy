@@ -12,8 +12,6 @@ type_synonym Signal = "LampId set"
 
 enumtype ProperState = dark | stop | warning | drive
 
-definition "ProperState = {dark, stop, warning, drive}"
-
 fun signalLamps :: "ProperState \<Rightarrow> LampId set" where
 "signalLamps dark = {}" |
 "signalLamps stop = {L1, L2}" |

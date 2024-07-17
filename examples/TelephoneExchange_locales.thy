@@ -228,7 +228,7 @@ lemma connecting_nConnected [simp]: "connecting \<notin> Connected" by (simp add
 
 lemma ringing_Connected [simp]: "ringing \<in> Connected" by (simp add: Connected_def)
 
-lemma LiftFree_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}LiftFree s\<^bold>{Exchange_inv\<^bold>}"
+lemma LiftFree_correct: "s \<in> Subs \<Longrightarrow> LiftFree s preserves Exchange_inv"
 proof zpog
   fix Free :: \<open>\<bbbP> int list\<close> and Unavailable :: \<open>\<bbbP> int list\<close>
     and Callers :: \<open>\<bbbP> int list\<close> and cal :: \<open>int list \<Zpfun> Status \<times> int list\<close> 
@@ -276,7 +276,7 @@ lemma suspended_Connected [simp]: "suspended \<in> Connected"
 lemma suspended_le_Connected [simp]: "{suspended} \<subseteq> Connected"
   by (simp add: Connected_def)
 
-lemma "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}LiftSuspended s\<^bold>{Exchange_inv\<^bold>}"
+lemma "s \<in> Subs \<Longrightarrow> LiftSuspended s preserves Exchange_inv"
 proof zpog
   fix Free :: "\<bbbP> int list" and Unavailable :: "\<bbbP> int list" and Callers :: "\<bbbP> int list" and cal :: "int list \<Zpfun>
                         Status \<times> int list" and connected :: "int list \<Zpfun> int list" and y :: "int list"
@@ -290,7 +290,7 @@ proof zpog
     show "[Free, Unavailable, dom (cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p), ran connected] partitions Subs" 
       using pres P.parts P.connected_inj by (auto simp add: num_def st_def pfun_inv_f_f_apply)
   next
-    show "([cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>)\<^sup>\<leftarrow> Connected = Callers" 
+    show "dom (([cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>) \<Zrres> Connected) = Callers" 
       using pres P.parts P.connected_inj P.Callers by (auto simp add: num_def st_def pfun_inv_f_f_apply Connected_def)
   next
     show "Callers \<Zdres> ([cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [connected]\<^sub>\<Zpfun>"
@@ -302,7 +302,7 @@ proof zpog
 qed
 
 
-lemma Answer_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}Answer s\<^bold>{Exchange_inv\<^bold>}" 
+lemma Answer_correct: "s \<in> Subs \<Longrightarrow> Answer s preserves Exchange_inv" 
 proof zpog
   fix Free :: "\<bbbP> int list" and Unavailable :: "\<bbbP> int list" and Callers :: "\<bbbP> int list" and cal :: "int list \<Zpfun>
                         Status \<times> int list" and connected :: "int list \<Zpfun> int list" and y :: "int list"
@@ -317,7 +317,7 @@ proof zpog
       by (auto simp add: f_pfun_inv_f_apply pfun_inv_f_f_apply)
   next
     from pres P.connected_inj P.dom_connected_subset_cal P.dom_connected_Callers P.Callers 
-    show "([cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>)\<^sup>\<leftarrow> Connected = Callers"
+    show "dom (([cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>) \<Zrres> Connected) = Callers"
       by (simp add: pfun_inv_f_f_apply P.connected_inj st_def insert_absorb)
   next
     from pres P.connected_inj P.dom_connected_subset_cal P.dom_connected_Callers P.connected show "Callers \<Zdres> ([cal([connected]\<^sub>\<Zpfun>\<^sup>\<sim>(connected(y)\<^sub>p)\<^sub>r \<mapsto> (speech, connected(y)\<^sub>p))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [connected]\<^sub>\<Zpfun>"
@@ -331,7 +331,7 @@ qed
 lemma nextstate_nConnected [simp]: "nextstate n \<notin> Connected"
   by (auto simp add: nextstate_def Connected_def)
 
-lemma Dial_correct: "\<lbrakk> s \<in> Subs; d \<in> Digit \<rbrakk> \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}Dial (s, d)\<^bold>{Exchange_inv\<^bold>}"
+lemma Dial_correct: "\<lbrakk> s \<in> Subs; d \<in> Digit \<rbrakk> \<Longrightarrow> Dial (s, d) preserves Exchange_inv"
 proof zpog
   fix Free :: "\<bbbP> int list" and Unavailable :: "\<bbbP> int list" and Callers :: "\<bbbP> int list" and cal :: "int list \<Zpfun>
                         Status \<times> int list" and connected :: "int list \<Zpfun> int list"
@@ -349,7 +349,7 @@ proof zpog
     from pres P.parts show "[Free, Unavailable, dom (let newnum = snd (cal(s)\<^sub>p) @ [d] in cal(s \<mapsto> (nextstate newnum, newnum))\<^sub>p), ran connected] partitions Subs"
       by (auto simp add: Let_unfold)
   next
-    from pres P.Callers show "([let newnum = snd (cal(s)\<^sub>p) @ [d] in cal(s \<mapsto> (nextstate newnum, newnum))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>)\<^sup>\<leftarrow> Connected = Callers"
+    from pres P.Callers show "dom (([let newnum = snd (cal(s)\<^sub>p) @ [d] in cal(s \<mapsto> (nextstate newnum, newnum))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>) \<Zrres> Connected) = Callers"
       by (auto simp add: Let_unfold st_def)
          (metis Compl_iff empty_iff fst_conv insert_iff pdom_res_apply seize_nConnected)
   next
@@ -374,7 +374,7 @@ next
     from pres P.parts show "[Free, Unavailable, dom (let newnum = snd (cal(s)\<^sub>p) @ [d] in cal(s \<mapsto> (nextstate newnum, newnum))\<^sub>p), ran connected] partitions Subs"
       by (auto simp add: Let_unfold)
   next
-    from pres P.Callers show "([let newnum = snd (cal(s)\<^sub>p) @ [d] in cal(s \<mapsto> (nextstate newnum, newnum))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>)\<^sup>\<leftarrow> Connected = Callers"
+    from pres P.Callers show "dom (([let newnum = snd (cal(s)\<^sub>p) @ [d] in cal(s \<mapsto> (nextstate newnum, newnum))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>) \<Zrres> Connected) = Callers"
       by (auto simp add: Let_unfold st_def)
          (metis Compl_iff dialling_nConnected empty_iff fst_conv insert_iff pdom_res_apply)
   next
@@ -387,13 +387,13 @@ qed
 lemma nConnected: "- Connected = {seize, dialling, connecting, engaged, unobtainable}"
   by (auto simp add: Connected_def, meson Status.exhaust_disc)
 
-lemma ClearAttempt_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}ClearAttempt s\<^bold>{Exchange_inv\<^bold>}"
+lemma ClearAttempt_correct: "s \<in> Subs \<Longrightarrow> ClearAttempt s preserves Exchange_inv"
   apply (zpog_full; auto)
   apply (metis Compl_iff empty_iff fst_conv insert_iff pdom_res_apply)
   apply (metis (no_types, lifting) Int_commute inf_bot_right mem_Collect_eq pdom_antires_insert_notin pdom_nres_disjoint pdom_res_twice ppreimageD pranres_pdom)
   done
 
-lemma ClearLine_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}ClearLine s\<^bold>{Exchange_inv\<^bold>}"
+lemma ClearLine_correct: "s \<in> Subs \<Longrightarrow> ClearLine s preserves Exchange_inv"
 proof zpog
   fix Free :: "\<bbbP> int list" and Unavailable :: "\<bbbP> int list" and Callers :: "\<bbbP> int list" and cal :: "int list \<Zpfun>
                         Status \<times> int list" and connected :: "int list \<Zpfun> int list"
@@ -436,7 +436,7 @@ proof zpog
       done
 
   next
-    from ncon P.Callers show "([{s} \<Zndres> cal]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>)\<^sup>\<leftarrow> Connected = Callers - {s, connected(s)\<^sub>p}"
+    from ncon P.Callers show "dom (([{s} \<Zndres> cal]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>) \<Zrres> Connected) = Callers - {s, connected(s)\<^sub>p}"
       by (auto)
   next
     from ncon P.Callers P.connected show "(Callers - {s, connected(s)\<^sub>p}) \<Zdres> ([{s} \<Zndres> cal]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [{s} \<Zndres> connected]\<^sub>\<Zpfun>"
@@ -483,7 +483,7 @@ next
       apply (metis DiffI P.Unavailable Un_iff insert_iff pfun_upd_ext pran_upd)
       done
   next
-    from ncon P.Callers show "([{s} \<Zndres> cal]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>)\<^sup>\<leftarrow> Connected = Callers - {s, connected(s)\<^sub>p}"
+    from ncon P.Callers show "dom (([{s} \<Zndres> cal]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>) \<Zrres> Connected) = Callers - {s, connected(s)\<^sub>p}"
       by (auto)
   next
     from ncon P.Callers P.connected show "(Callers - {s, connected(s)\<^sub>p}) \<Zdres> ([{s} \<Zndres> cal]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [{s} \<Zndres> connected]\<^sub>\<Zpfun>"
@@ -491,7 +491,7 @@ next
   qed
 qed
   
-lemma Connect2Ringing_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}Connect2Ringing s\<^bold>{Exchange_inv\<^bold>}"
+lemma Connect2Ringing_correct: "s \<in> Subs \<Longrightarrow> Connect2Ringing s preserves Exchange_inv"
 proof zpog
   fix Free :: "\<bbbP> int list" and Unavailable :: "\<bbbP> int list" and Callers :: "\<bbbP> int list" and cal :: "int list \<Zpfun>
                         Status \<times> int list" and connected :: "int list \<Zpfun> int list"
@@ -507,7 +507,7 @@ proof zpog
     from pres P.parts show "[Free - {snd (cal(s)\<^sub>p)}, Unavailable, dom (cal(s \<mapsto> (ringing, snd (cal(s)\<^sub>p)))\<^sub>p), ran (connected(s \<mapsto> snd (cal(s)\<^sub>p))\<^sub>p)] partitions Subs" 
       by (auto simp add: Connected_def st_def num_def)
   next
-    from P.Callers show "([cal(s \<mapsto> (ringing, snd (cal(s)\<^sub>p)))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>)\<^sup>\<leftarrow> Connected = insert s Callers"
+    from P.Callers show "dom (([cal(s \<mapsto> (ringing, snd (cal(s)\<^sub>p)))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>) \<Zrres> Connected) = insert s Callers"
       by (simp add: st_def Connected_def)
   next
     from pres P.Callers P.connected P.dom_connected_Callers show "insert s Callers \<Zdres> ([cal(s \<mapsto> (ringing, snd (cal(s)\<^sub>p)))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [num]\<^sub>\<Zpfun>) = [connected(s \<mapsto> snd (cal(s)\<^sub>p))\<^sub>p]\<^sub>\<Zpfun>"
@@ -519,7 +519,7 @@ proof zpog
 qed
 
 
-lemma Connect2Engaged_correct: "s \<in> Subs \<Longrightarrow> \<^bold>{Exchange_inv\<^bold>}Connect2Engaged s\<^bold>{Exchange_inv\<^bold>}"
+lemma Connect2Engaged_correct: "s \<in> Subs \<Longrightarrow> Connect2Engaged s preserves Exchange_inv"
 proof zpog
   fix Free :: "\<bbbP> int list" and Unavailable :: "\<bbbP> int list" and Callers :: "\<bbbP> int list" and cal :: "int list \<Zpfun>
                         Status \<times> int list" and connected :: "int list \<Zpfun> int list"
@@ -537,7 +537,7 @@ proof zpog
     show "[Free, Unavailable, dom (cal(s \<mapsto> (engaged, snd (cal(s)\<^sub>p)))\<^sub>p), ran connected] partitions Subs"
       using pres P.parts by auto
   next
-    from pres P.Callers  show "([cal(s \<mapsto> (engaged, snd (cal(s)\<^sub>p)))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>)\<^sup>\<leftarrow> Connected = Callers"
+    from pres P.Callers show "dom (([cal(s \<mapsto> (engaged, snd (cal(s)\<^sub>p)))\<^sub>p]\<^sub>\<Zpfun> \<Zcomp> [st]\<^sub>\<Zpfun>) \<Zrres> Connected) = Callers"
       by (auto simp add: st_def)
          (metis Compl_iff connecting_nConnected empty_iff fst_conv insert_iff pdom_res_apply)
   next

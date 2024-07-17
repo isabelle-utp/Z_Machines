@@ -1,10 +1,12 @@
 theory Z_Machine
   imports Z_Operations Z_Animator Z_Testing "Z_Toolkit.Z_Toolkit" 
-    "HOL-Library.Code_Target_Numeral" "ITree_Simulation.Code_Rational" "ITree_UTP.ITree_Random"
+    "HOL-Library.Code_Target_Numeral" "ITree_Simulation.Code_Rational" "ITree_UTP.ITree_Random" "ITree_VCG.ITree_VCG"
     "Explorer.Explorer" Show_Record
   keywords "zmachine" "zoperation" "zinit" :: "thy_decl_block"
-    and "over" "init" "invariant" "operations" "until" "params" "pre" "update" "\<in>" "promote" "emit"
+    and "over" "init" "invariant" "operations" "until" "params" "output" "pre" "update" "\<in>" "promote" "emit"
 begin
+
+expr_vars
 
 named_theorems z_machine_defs
 
@@ -17,27 +19,41 @@ abbreviation input_in_where_choice
   :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('s \<Rightarrow> bool) \<times> ('e, 's) htree) \<Rightarrow> 's \<Rightarrow> 'e \<Zpfun> ('e, 's) itree" where
   "input_in_where_choice c A P \<equiv> (\<lambda> s. (\<lambda> e \<in> build\<^bsub>c\<^esub> ` A s | fst (P (the (match\<^bsub>c\<^esub> e))) s \<bullet> snd (P (the (match\<^bsub>c\<^esub> e))) s))"
 
-definition zop_event :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> ('e, 's) htree) \<Rightarrow> ('e, 's) htree" where
-[code_unfold]: "zop_event c A zop = (\<lambda> s. Vis (prism_fun c (A s) (\<lambda> v. (pre (zop v) s, zop v s))))"
+(*
+definition zop_event :: 
+  "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> 
+   ('a \<Rightarrow> 's \<Rightarrow> ('e, 'b \<times> 's) itree) \<Rightarrow> 
+   ('e, 's) htree" where
+[code_unfold]: 
+  "zop_event c A d zop = 
+    (\<lambda> s. Vis (prism_fun c (A s) 
+               (\<lambda> v. (pre (zop v) s, zop v s \<bind> (\<lambda> (b, s'). Vis {build\<^bsub>d\<^esub> b \<mapsto> Ret s'})))))"
+*)
 
-lemma hl_zop_event [hoare_safe]: "\<lbrakk> \<And> p. \<^bold>{P\<^bold>} zop p \<^bold>{Q\<^bold>} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A zop \<^bold>{Q\<^bold>}"
-  by (auto elim!: trace_to_VisE simp add: zop_event_def hoare_alt_def)
-     (metis (no_types, lifting) IntE mem_Collect_eq pabs_apply pdom_pabs prism_fun_def snd_conv)
+definition zop_event :: 
+  "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('s \<Rightarrow> 'a set) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> 
+   ('a \<Rightarrow> 's \<Rightarrow> ('e, 'b \<times> 's) itree) \<Rightarrow> 
+   ('e, 's) htree" where
+[code_unfold]: 
+  "zop_event c A P d zop = (c?(x):A | @(P x) \<rightarrow> output_return (zop x) d)"
 
-lemma zop_event_is_event_block: 
-  "\<lbrakk> wb_prism c \<rbrakk> \<Longrightarrow> zop_event c A (mk_zop P \<sigma> Q) = event_block c A (\<lambda> p. ([\<lambda> s. P p s \<and> Q p s]\<^sub>e, \<sigma> p))"
-  by (auto intro: prism_fun_cong2 simp add: zop_event_def event_block_def wp usubst fun_eq_iff mk_zop_state_sat)
+lemma hl_zop_event_full: 
+  "\<lbrakk> wb_prism c; \<And> p. H{P \<and> \<guillemotleft>p\<guillemotright> \<in> A \<and> @(Pre p)} zop p {ret. Q} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A Pre d zop \<^bold>{Q\<^bold>}"
+  apply (simp add: zop_event_def)
+  apply (rule hoare_safe)
+   apply (simp)
+  apply (rule hoare_safe)
+  apply simp
+  done
 
+lemma hl_zop_event: 
+  "\<lbrakk> wb_prism c; \<And> p. H{P} zop p {ret. Q} \<rbrakk> \<Longrightarrow> \<^bold>{P\<^bold>} zop_event c A Pre d zop \<^bold>{Q\<^bold>}"
+  by (simp add: hl_proc_conj_pre hl_zop_event_full)
+  
 (*
 lemma pdom_zop_event: "wb_prism c \<Longrightarrow> pdom (zop_event c A zop s) = {e. e \<in> build\<^bsub>c\<^esub> ` A s \<and> pre (zop (the (match\<^bsub>c\<^esub> e))) s}"
   by (simp add: zop_event_def dom_prism_fun, auto)
 *)
-
-definition operation :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('e, 'a, 's) operation \<Rightarrow> ('e, 's) htree" where
-"operation c P = c?(v) | pre (P v) \<rightarrow> P v"
-
-definition io_operation :: "('a \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('b \<Longrightarrow>\<^sub>\<triangle> 'e) \<Rightarrow> ('a \<Rightarrow> ('e, 'b \<times> 's) htree) \<Rightarrow> ('e, 's) htree" where
-"io_operation c d P = undefined"
 
 text \<open> A machine has an initialisation and a list of operations. \<close>
 
@@ -78,7 +94,7 @@ lemma deadlock_free_z_machine:
   fixes Inv :: "'s::default \<Rightarrow> bool"
   assumes 
     "Init establishes Inv"
-    "\<And> E. E\<in>set Events \<Longrightarrow> E preserves Inv"
+    "\<And> E. E\<in>set Events \<Longrightarrow> H{Inv} E {Inv}"
     "`\<not> End \<and> Inv \<longrightarrow> dfp (foldr (\<box>) Events Stop)`"
   shows "deadlock_free (z_machine Init Inv Events End)"
 proof (simp add: z_machine_def z_machine_main_def, rule deadlock_free_processI, rule deadlock_free_init_iterate[where P="Inv"], rule assms(1), simp_all)
@@ -95,7 +111,7 @@ proof (simp add: z_machine_def z_machine_main_def, rule deadlock_free_processI, 
     using assms(3) by auto
 qed
 
-lemma preserves_trivial: "P preserves True"
+lemma preserves_trivial: "H{True} P {True}"
   by (simp add: hoare_alt_def)
 
 method deadlock_free_invs uses invs =
@@ -106,7 +122,7 @@ method deadlock_free_invs uses invs =
 
 method deadlock_free uses invs =
   ((deadlock_free_invs invs: invs),
-   (simp add: zop_event_is_event_block extchoice_event_block z_defs z_locale_defs wp Bex_Sum_iff;
+   (simp add: zop_event_def extchoice_inp_where_combine extchoice_event_block z_defs z_locale_defs wp Ball_Sum_iff Bex_Sum_iff;
     expr_simp add: split_sum_all split_sum_ex;
     ((rule conjI allI impI | erule conjE disjE exE)+; rename_alpha_vars?)?))
 

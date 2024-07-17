@@ -19,23 +19,23 @@ zoperation AddBirthday =
   params name\<in>NAME date\<in>DATE
   pre "name \<notin> known"
   update "[known \<leadsto> known \<union> {name}, birthday \<leadsto> birthday \<oplus> {name \<mapsto> date}]"
-
+  
 lemma AddBirthday_inv: "AddBirthday (n, d) preserves BirthdayBook_inv"
   by zpog_full
 
 zoperation FindBirthday =
   over BirthdayBook
-  params name\<in>NAME date\<in>DATE
+  params name\<in>NAME
   pre "name \<in> dom birthday"
-  where "date = birthday(name)"
+  output "birthday(name)"
 
-lemma FindBirthday_inv: "FindBirthday (n, d) preserves BirthdayBook_inv"
+lemma FindBirthday_inv: "FindBirthday n preserves BirthdayBook_inv"
   by zpog_full
 
 zoperation Remind =
   over BirthdayBook
   params today\<in>DATE cards\<in>"\<bbbP> NAME"
-  where "cards = {n \<in> known. birthday(n) = today}"
+  pre "cards = {n \<in> known. birthday(n) = today}"
 
 lemma Remind_inv: "Remind (n, d) preserves BirthdayBook_inv"
   by zpog_full
@@ -48,8 +48,10 @@ zmachine BirthdayBookSys =
 
 definition [z_defs]: "BirthdayBook_axioms = (NAME \<noteq> {} \<and> DATE \<noteq> {})"
 
-lemma BirthdayBook_deadlock_free: "BirthdayBook_axioms \<Longrightarrow> deadlock_free BirthdayBookSys" 
-  by (deadlock_free invs: AddBirthday_inv FindBirthday_inv Remind_inv; auto)
+lemma BirthdayBook_deadlock_free: "BirthdayBook_axioms \<Longrightarrow> deadlock_free BirthdayBookSys"
+  apply (deadlock_free invs: AddBirthday_inv FindBirthday_inv Remind_inv)
+  apply blast
+  done
 
 animate BirthdayBookSys
   defines NAME = "{''Simon'', ''Jim''}" DATE = "{''25/08/1983''}"
