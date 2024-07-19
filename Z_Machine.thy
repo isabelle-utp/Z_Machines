@@ -3,7 +3,7 @@ theory Z_Machine
     "HOL-Library.Code_Target_Numeral" "ITree_Simulation.Code_Rational" "ITree_UTP.ITree_Random" "ITree_VCG.ITree_VCG"
     "Explorer.Explorer" Show_Record
   keywords "zmachine" "zoperation" "zinit" :: "thy_decl_block"
-    and "over" "init" "invariant" "operations" "until" "params" "output" "pre" "update" "\<in>" "promote" "emit"
+    and "over" "init" "invariant" "operations" "until" "params" "output" "pre" "update" "\<in>" "promote" "emit" "extends"
 begin
 
 expr_vars

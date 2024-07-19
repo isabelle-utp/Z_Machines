@@ -5,10 +5,16 @@ structure Z_Machine = struct
 type param = string * string
 
 datatype operation_body =
+  (* Operations build by definition from scratch *)
   OperDefn of {params: param list, pre: string list, update: string, output: string} |
+  (* Operations built by composing other operations, or using imperative program notation *)
   OperComp of {params: param list, pre: string list, body: string} |
+  (* Operations built by promotion *)
   OperProm of {promop: string, plens: string} |
-  OperEmit of {emit: string}
+  (* Operations that emit information on the state *)
+  OperEmit of {emit: string} |
+  (* Operations that extend an existing operation *)
+  OperExt of {params: param list, pre: string list, extends: string, update: string, output: string}
 
 datatype operation = 
   Operation of {name: string, state: string, body: operation_body}
@@ -176,7 +182,34 @@ mk_zop (Operation {name = n, state = s, body = OperEmit {emit = e}}) ctx =
   in def_zop n set st body ctx 
      (* Generate precondition *)
      |> gen (zop_pre n) (parm --> st --> dummyT) (Abs ("p", parm, SEXP $ lambda (free state_id) @{term True}))
+  end |
+mk_zop (Operation {name = n, state = s, body = OperExt {params = ps, pre = pre, extends = extends, update = upd, output = ot}}) ctx =
+  let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
+      val pss = (map (fn (p, t) => (p, lift_expr ctx ((parse_term ctx t)))) ps)
+      val pset = params_set (map snd pss)
+      val set = SEXP $ pset
+      val parm = dest_setT (range_type (Term.type_of (check_term ctx set)))
+      val st = read_typ ctx s
+      val ppat = mk_tuple (map (free o fst) pss)
+
+      val ppre = 
+         lambda (free state_id) 
+                (mk_conj (const @{const_name Set.member} $ ppat $ (pset $ Bound 0)
+                         , mk_lift_expr ctx (foldr1 mk_conj ((map (parse_term ctx) pre))) $ Bound 0)) 
+      val poutput = 
+         lambda (free state_id) 
+                ((mk_lift_expr ctx (parse_term ctx ot)) $ Bound 0) 
+      val body = ( 
+              (Const (@{const_name "extend_operation"}, (parm --> st --> dummyT) --> dummyT)
+                $ tupled_lambda ppat (SEXP $ ppre))
+                $ tupled_lambda ppat (parse_term ctx extends)
+                $ tupled_lambda ppat (Type.constraint (st --> st) (parse_term ctx upd))
+                $ tupled_lambda ppat (SEXP $ poutput)
+                )
+  in def_zop n set st body ctx 
+     |> gen (zop_pre n) (parm --> st --> dummyT) (tupled_lambda ppat (SEXP $ ppre))
   end;
+
 
 fun get_zop_ptype n ctx =
   case Proof_Context.read_const {proper = false, strict = false} ctx n of
@@ -246,7 +279,7 @@ val parse_operdefn =
 
 val parse_opercomp = 
   let open Scan; open Parse in
-  ((@{keyword "params"} |-- repeat1 parse_param) --
+  ((Scan.optional (@{keyword "params"} |-- repeat1 parse_param) []) --
   (Scan.optional (@{keyword "pre"} |-- repeat1 term) ["True"]) --
   (@{keyword "is"} |-- term)) >> (fn ((ps, pre), bdy) => OperComp {params = ps, pre = pre, body = bdy})
   end
@@ -263,7 +296,18 @@ val parse_operemit =
   >> (fn e => OperEmit {emit = e})
   end
 
-val parse_operbody = parse_operprom || parse_opercomp || parse_operemit || parse_operdefn;
+val parse_operext =
+  let open Scan; open Parse in
+  ((Scan.optional (@{keyword "params"} |-- repeat1 parse_param) []) --
+  (Scan.optional (@{keyword "pre"} |-- repeat1 term) ["True"]) --
+  (@{keyword "extends"} |-- term) --
+  (Scan.optional (@{keyword "update"} |-- term) "[\<leadsto>]") --
+  (Scan.optional (@{keyword "output"} |-- term) "()")
+  >> (fn ((((ps, g), ext), upd), ot) => OperExt {params = ps, pre = g, extends = ext, update = upd, output = ot}))
+  end
+
+
+val parse_operbody = parse_operprom || parse_opercomp || parse_operemit || parse_operext || parse_operdefn;
 
 val parse_operation =
   let open Scan; open Parse in

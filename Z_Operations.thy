@@ -135,6 +135,10 @@ lemma promote_mk_zop [wp, code_unfold]:
   by (auto simp add: promote_operation_def mk_zop_def Let_unfold promotion_lens_def fun_eq_iff promote_iproc_def proc_ret_def
       assume_def seq_itree_def kleisli_comp_def test_def expr_defs assigns_def lens_defs lens_source_def)
 
+definition extend_operation :: 
+  "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('e, 'a, 'c, 's) operation \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> 'b) \<Rightarrow> ('e, 'a, 'b, 's) operation" where
+[code_unfold, wp]: "extend_operation P Op \<sigma> R = (\<lambda> v. assume (P v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a ;; Op v ;; rdrop ;; proc_ret (R v))"
+
 text \<open> These are needed so that the code generator can apply promotion \<close>
 
 declare mwb_list_collection_lens [code_unfold]
