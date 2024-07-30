@@ -9,6 +9,10 @@ code_identifier
   code_module Z_Animator \<rightharpoonup> (Haskell) Interaction_Trees
 | code_module Partial_Fun \<rightharpoonup> (Haskell) Interaction_Trees
 | code_module Interaction_Trees \<rightharpoonup> (Haskell) Interaction_Trees
+| code_module Typerep \<rightharpoonup> (Haskell) Arith
+| code_module Arith \<rightharpoonup> (Haskell) Arith
+| code_module Code_Evaluation \<rightharpoonup> (Haskell) Arith 
+
 
 generate_file \<open>code/animate/Animate.hs\<close> = \<open>
 module Animate (animate) where
@@ -98,7 +102,7 @@ fun simulator_setup thy =
 
 fun sim_files_cp ghc tmp = 
   "(fn path => let open Isabelle_System; val path' = Path.append path (Path.make [\"code\", \"animate\"])" ^
-  " in writeln \"Compiling animation...\"; bash (\"cd \" ^ Path.implode path' ^ \"; " ^ ghc ^ " Animation &> /dev/null\") ; copy_dir path' (Path.explode \"" ^ tmp ^ "\") end)";
+  " in writeln \"Compiling animation...\"; bash (\"cd \" ^ Path.implode path' ^ \"; " ^ ghc ^ " Animation &> /dev/null \") ; copy_dir path' (Path.explode \"" ^ tmp ^ "\") end)";
 
 open Named_Target
 

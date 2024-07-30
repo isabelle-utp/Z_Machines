@@ -137,7 +137,24 @@ lemma promote_mk_zop [wp, code_unfold]:
 
 definition extend_operation :: 
   "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('e, 'a, 'c, 's) operation \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> 'b) \<Rightarrow> ('e, 'a, 'b, 's) operation" where
-[code_unfold, wp]: "extend_operation P Op \<sigma> R = (\<lambda> v. assume (P v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a ;; Op v ;; rdrop ;; proc_ret (R v))"
+[code_unfold]: "extend_operation P Op \<sigma> R = (\<lambda> v. assume (P v) ;; \<langle>\<sigma> v\<rangle>\<^sub>a ;; Op v ;; rdrop ;; proc_ret (R v))"
+
+lemma wlp_rdrop [wp]: "wlp rdrop P = retp[r. P]"
+  by (auto simp add: wlp_itree_def rdrop_def itree_rel_def itree_pred_def retvals_def fun_eq_iff ret_pred_def)
+
+lemma wlp_extend_operation [wp]:
+  "wlp (extend_operation P Op \<sigma> R v) retp[r. @(PP r)] 
+   = [\<lambda>\<s>. P v \<s> \<longrightarrow> (\<sigma> v \<dagger> [(wlp (Op v)) [ret_pred (\<lambda>r. [\<lambda>\<s>. PP (R v \<s>) \<s>]\<^sub>e)]\<^sub>e]\<^sub>e) \<s>]\<^sub>e" 
+  by (simp add: extend_operation_def wp usubst)
+
+lemma dfp_rdrop [wp]: "dfp rdrop = (True)\<^sub>e"
+  by (simp add: deadlock_free_Ret dfp_def dual_order.eq_iff predicate1I rdrop_def split_beta)
+
+lemma dfp_extend_operation [wp]:
+  "dfp (extend_operation P Op \<sigma> R v) = [\<lambda>\<s>. P v \<s> \<longrightarrow> (\<sigma> v \<dagger> [dfp (Op v)]\<^sub>e) \<s>]\<^sub>e"
+  by (simp add: extend_operation_def wp)
+
+(* [\<lambda> \<s>. P v \<s> \<longrightarrow> (\<sigma> v \<dagger> [\<lambda> \<s>. b \<s>]\<^sub>e) \<s>]\<^sub>e *)
 
 text \<open> These are needed so that the code generator can apply promotion \<close>
 

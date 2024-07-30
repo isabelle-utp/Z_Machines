@@ -112,7 +112,7 @@ method deadlock_free_invs uses invs =
 
 method deadlock_free uses invs =
   ((deadlock_free_invs invs: invs),
-   (simp add: zop_event_def extchoice_inp_where_combine extchoice_event_block z_defs z_locale_defs wp Ball_Sum_iff Bex_Sum_iff;
+   (simp add: zop_event_def extchoice_inp_where_combine extchoice_event_block z_defs z_locale_defs wp Ball_Sum_iff Bex_Sum_iff split_sum_all split_sum_ex;
     expr_simp add: split_sum_all split_sum_ex;
     ((rule conjI allI impI | erule conjE disjE exE)+; rename_alpha_vars?)?))
 
