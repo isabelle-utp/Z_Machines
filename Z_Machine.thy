@@ -125,7 +125,7 @@ ML_file \<open>Z_Machine.ML\<close>
 
 ML \<open>
 Outer_Syntax.command @{command_keyword zmachine} "define a Z machine"
-    (Z_Machine.parse_zmachine >> (Toplevel.local_theory NONE NONE o Z_Machine.zmachine_sem));
+    (Z_Machine.parse_zmachine >> (Toplevel.theory o Z_Machine.zmachine_sem));
 
 Outer_Syntax.command @{command_keyword zoperation} "define a Z operation"
     (Z_Machine.parse_operation >> (Toplevel.local_theory NONE NONE o Z_Machine.mk_zop));
