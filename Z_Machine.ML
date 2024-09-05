@@ -259,7 +259,7 @@ fun zmachine_sem (ZMachine {name = n, state = s, init = i, inv = inv, operations
     val inve = mk_lift_expr ctx (parse_term ctx inv)
     val init = parse_term ctx i
     val ends = mk_lift_expr ctx (parse_term ctx e)
-  in Channel_Type.compile_chantype (chantype_name n, cs) thy |>
+  in Channel_Type.compile_chantype (([], chantype_name n), cs) thy |>
      Named_Target.theory_init o mk_chan_show_inst (chantype_name n) ops |>
      Local_Theory.exit_global o zmachine_body_sem n st init inve ops ends
   end
