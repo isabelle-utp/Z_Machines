@@ -100,7 +100,7 @@ text \<open> The simple case for type promotion is when there is no dependency o
 
 lemma promoted_type_nodep [simp, code_unfold]: 
   "promoted_type a cl (\<guillemotleft>A\<guillemotright>)\<^sub>e = (promotion_type a cl \<times> \<guillemotleft>A\<guillemotright>)\<^sub>e"
-  by (simp add: promoted_type_def usubst, simp add: SEXP_def)
+  by (simp add: promoted_type_def, simp add: SEXP_def subst_app_def)
 
 text \<open> Promoting an operation first checks whether the promotion lens is defined for the given
   index. If not, it deadlocks. Otherwise, the operation is run on the local state, which is
