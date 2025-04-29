@@ -6,7 +6,7 @@ theory Z_Machine
     and "over" "init" "invariant" "operations" "until" "params" "output" "pre" "update" "\<in>" "promote" "emit" "extends"
 begin
 
-expr_vars
+declare [[literal_variables=false]]
 
 named_theorems z_machine_defs
 
@@ -120,7 +120,9 @@ text \<open> Function to show the channel of an operation \<close>
 
 definition show_op_channel :: "String.literal \<Rightarrow> 'a::show \<Rightarrow> String.literal" where
 "show_op_channel c p = c + STR '' '' + show p"
-                
+
+ML \<open>open YXML\<close>
+
 ML_file \<open>Z_Machine.ML\<close>
 
 ML \<open>
@@ -139,7 +141,7 @@ code_datatype pfun_of_alist pfun_of_map pfun_entries
 
 setup \<open> Explorer_Lib.switch_to_quotes \<close>
 
-lit_vars
+declare [[literal_variables]]
 
 text \<open> Change the default target of string syntax to be literals. Literals are much better for
   code generation, and also provide more control since they are a distinct type to lists.
@@ -150,10 +152,10 @@ bundle literal_syntax
 begin
 
 no_syntax
-  "_String" :: "str_position \<Rightarrow> string"    ("_")
+  "_String" :: "str_position \<Rightarrow> string" (\<open>(\<open>open_block notation=\<open>literal string\<close>\<close>_)\<close>)
 
 syntax
-  "_Literal" :: "str_position \<Rightarrow> String.literal"   ("_")
+  "_Literal" :: "str_position \<Rightarrow> String.literal"  (\<open>(\<open>open_block notation=\<open>literal string\<close>\<close>_)\<close>)
 
 end
 
@@ -226,6 +228,6 @@ code_printing
 | constant "show_set_inst.show_set" \<rightharpoonup> (Haskell) "Prelude.show"
 | class_instance "set" :: "show" \<rightharpoonup> (Haskell) -
 
-code_reserved Haskell List_Set
+code_reserved (Haskell) List_Set
 
 end

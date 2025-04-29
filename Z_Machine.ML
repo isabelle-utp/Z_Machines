@@ -253,8 +253,8 @@ fun chantype_name n = n ^ "_chan"
 fun zmachine_sem (ZMachine {name = n, state = s, init = i, inv = inv, operations = ops, ends = e}) thy =
   let open Syntax; open HOLogic; open Lift_Expr
     val ctx = Named_Target.theory_init thy
-    val cs = map (fn n => (firstLower n, YXML.content_of (string_of_typ ctx (get_zop_ptype n ctx)))) ops @
-             map (fn n => (firstLower n ^ "_Out", YXML.content_of (string_of_typ ctx (get_zop_outtype n ctx)))) ops
+    val cs = map (fn n => (firstLower n, XML.content_of (YXML.parse_body (string_of_typ ctx (get_zop_ptype n ctx))))) ops @
+             map (fn n => (firstLower n ^ "_Out", XML.content_of (YXML.parse_body (string_of_typ ctx (get_zop_outtype n ctx))))) ops
     val st = read_typ ctx s
     val inve = mk_lift_expr ctx (parse_term ctx inv)
     val init = parse_term ctx i
