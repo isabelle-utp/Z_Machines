@@ -133,7 +133,7 @@ lemma promote_mk_zop [wp, code_unfold]:
         (\<lambda> (a, p). (\<sigma> p) \<up>\<^sub>s x:cl(a))
         (\<lambda> (a, p). (R p) \<up> x:cl(a))"
   by (auto simp add: promote_operation_def mk_zop_def Let_unfold promotion_lens_def fun_eq_iff promote_iproc_def proc_ret_def
-      assume_def seq_itree_def kleisli_comp_def test_def expr_defs assigns_def lens_defs lens_source_def)
+      assume_def kcomp_itree_def test_def expr_defs assigns_def lens_defs lens_source_def)
 
 definition extend_operation :: 
   "('a \<Rightarrow> 's \<Rightarrow> bool) \<Rightarrow> ('e, 'a, 'c, 's) operation \<Rightarrow> ('a \<Rightarrow> 's subst) \<Rightarrow> ('a \<Rightarrow> 's \<Rightarrow> 'b) \<Rightarrow> ('e, 'a, 'b, 's) operation" where

@@ -109,7 +109,7 @@ fun mk_zinit (Init {name = n, state = s, update = upd}) ctx =
 
 fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = pre, update = upd, output = ot}}) ctx =
   let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
-      val pss = (map (fn (p, t) => (p, lift_expr ctx ((parse_term ctx t)))) ps)
+      val pss = (map (fn (p, t) => (p, lift_expr ctx dummyT ((parse_term ctx t)))) ps)
       val pset = params_set (map snd pss)
       val set = SEXP $ pset
       val parm = dest_setT (range_type (Term.type_of (check_term ctx set)))
@@ -119,10 +119,10 @@ fun mk_zop (Operation {name = n, state = s, body = OperDefn {params = ps, pre = 
       val ppre = 
          lambda (free state_id) 
                 (mk_conj (const @{const_name Set.member} $ ppat $ (pset $ Bound 0)
-                         , mk_lift_expr ctx (foldr1 mk_conj ((map (parse_term ctx) pre))) $ Bound 0)) 
+                         , mk_lift_expr ctx dummyT (foldr1 mk_conj ((map (parse_term ctx) pre))) $ Bound 0)) 
       val poutput = 
          lambda (free state_id) 
-                ((mk_lift_expr ctx (parse_term ctx ot)) $ Bound 0) 
+                ((mk_lift_expr ctx dummyT (parse_term ctx ot)) $ Bound 0) 
       val body = ( 
               (Const (@{const_name "mk_zop"}, (parm --> st --> dummyT) --> dummyT)
                 $ tupled_lambda ppat (SEXP $ ppre))
@@ -160,7 +160,7 @@ mk_zop (Operation {name = n, state = s, body = OperProm {promop = opr, plens = l
   end |
 mk_zop (Operation {name = n, state = s, body = OperComp {params = ps, pre = pre, body = bdy}}) ctx =
   let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
-      val pss = (map (fn (p, t) => (p, lift_expr ctx ((parse_term ctx t)))) ps)
+      val pss = (map (fn (p, t) => (p, lift_expr ctx dummyT ((parse_term ctx t)))) ps)
       val pset = params_set (map snd pss)
       val set = SEXP $ pset
       val parm = dest_setT (range_type (Term.type_of (check_term ctx set)))
@@ -168,14 +168,14 @@ mk_zop (Operation {name = n, state = s, body = OperComp {params = ps, pre = pre,
       val ppat = mk_tuple (map (free o fst) pss)
       val ppre = 
          lambda (free state_id) 
-                (mk_lift_expr ctx (foldr1 mk_conj ((map (parse_term ctx) pre))) $ Bound 0)
+                (mk_lift_expr ctx dummyT (foldr1 mk_conj ((map (parse_term ctx) pre))) $ Bound 0)
       val body = tupled_lambda ppat (Type.constraint (st --> dummyT) (parse_term ctx bdy))
   in def_zop n set st body ctx
      |> gen (zop_pre n) (parm --> st --> dummyT) (tupled_lambda ppat (SEXP $ ppre))
  end |
 mk_zop (Operation {name = n, state = s, body = OperEmit {emit = e}}) ctx =
   let open Syntax; open HOLogic; open Lift_Expr
-  val set = mk_lift_expr ctx (mk_set dummyT [parse_term ctx e])
+  val set = mk_lift_expr ctx dummyT (mk_set dummyT [parse_term ctx e])
   val st = read_typ ctx s
   val parm = dest_setT (range_type (Term.type_of (check_term ctx set)))
   val body = const @{const_abbrev emit_op}
@@ -185,7 +185,7 @@ mk_zop (Operation {name = n, state = s, body = OperEmit {emit = e}}) ctx =
   end |
 mk_zop (Operation {name = n, state = s, body = OperExt {params = ps, pre = pre, extends = extends, update = upd, output = ot}}) ctx =
   let open Syntax; open Library; open Logic; open HOLogic; open Lift_Expr
-      val pss = (map (fn (p, t) => (p, lift_expr ctx ((parse_term ctx t)))) ps)
+      val pss = (map (fn (p, t) => (p, lift_expr ctx dummyT ((parse_term ctx t)))) ps)
       val pset = params_set (map snd pss)
       val set = SEXP $ pset
       val parm = dest_setT (range_type (Term.type_of (check_term ctx set)))
@@ -195,10 +195,10 @@ mk_zop (Operation {name = n, state = s, body = OperExt {params = ps, pre = pre, 
       val ppre = 
          lambda (free state_id) 
                 (mk_conj (const @{const_name Set.member} $ ppat $ (pset $ Bound 0)
-                         , mk_lift_expr ctx (foldr1 mk_conj ((map (parse_term ctx) pre))) $ Bound 0)) 
+                         , mk_lift_expr ctx dummyT (foldr1 mk_conj ((map (parse_term ctx) pre))) $ Bound 0)) 
       val poutput = 
          lambda (free state_id) 
-                ((mk_lift_expr ctx (parse_term ctx ot)) $ Bound 0) 
+                ((mk_lift_expr ctx dummyT (parse_term ctx ot)) $ Bound 0) 
       val body = ( 
               (Const (@{const_name "extend_operation"}, (parm --> st --> dummyT) --> dummyT)
                 $ tupled_lambda ppat (SEXP $ ppre))
@@ -256,9 +256,9 @@ fun zmachine_sem (ZMachine {name = n, state = s, init = i, inv = inv, operations
     val cs = map (fn n => (firstLower n, XML.content_of (YXML.parse_body (string_of_typ ctx (get_zop_ptype n ctx))))) ops @
              map (fn n => (firstLower n ^ "_Out", XML.content_of (YXML.parse_body (string_of_typ ctx (get_zop_outtype n ctx))))) ops
     val st = read_typ ctx s
-    val inve = mk_lift_expr ctx (parse_term ctx inv)
+    val inve = mk_lift_expr ctx dummyT (parse_term ctx inv)
     val init = parse_term ctx i
-    val ends = mk_lift_expr ctx (parse_term ctx e)
+    val ends = mk_lift_expr ctx dummyT (parse_term ctx e)
   in Channel_Type.compile_chantype (([], chantype_name n), cs) thy |>
      Named_Target.theory_init o mk_chan_show_inst (chantype_name n) ops |>
      Local_Theory.exit_global o zmachine_body_sem n st init inve ops ends
