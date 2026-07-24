@@ -70,7 +70,7 @@ lemma wlp_Vis: "wlp (\<lambda> s. Vis (F s)) P = (\<forall> e\<in>dom F. wlp (\<
   done
 
 definition z_machine_main :: "(('e::show, 's) htree) list \<Rightarrow> ('e, 's) htree" where
-"z_machine_main Ops = (foldr ExtChoice Ops Stop)"
+"z_machine_main Ops = (foldr (\<box>) Ops Stop)"
 
 definition z_machine :: "('s::default) subst \<Rightarrow> ('s \<Rightarrow> bool) \<Rightarrow> (('e::show, 's) htree) list \<Rightarrow> ('s \<Rightarrow> bool) \<Rightarrow> 'e process" where
 [code_unfold]: "z_machine Init Inv Ops End = process Init (iterate (Not \<circ> End) (z_machine_main Ops))"
@@ -85,10 +85,10 @@ lemma deadlock_free_z_machine:
   assumes 
     "Init establishes Inv"
     "\<And> E. E\<in>set Events \<Longrightarrow> H{Inv} E {Inv}"
-    "`\<not> End \<and> Inv \<longrightarrow> dfp (foldr ExtChoice Events Stop)`"
+    "`\<not> End \<and> Inv \<longrightarrow> dfp (foldr (\<box>) Events Stop)`"
   shows "deadlock_free (z_machine Init Inv Events End)"
 proof (simp add: z_machine_def z_machine_main_def, rule deadlock_free_processI, rule deadlock_free_init_iterate[where P="Inv"], rule assms(1), simp_all)
-  from assms(2) show "\<^bold>{Inv\<^bold>} foldr ExtChoice Events Stop \<^bold>{Inv\<^bold>}"
+  from assms(2) show "\<^bold>{Inv\<^bold>} foldr (\<box>) Events Stop \<^bold>{Inv\<^bold>}"
   proof (induct Events)
     case Nil
     then show ?case by (simp, metis SEXP_def hl_Stop)
@@ -97,7 +97,7 @@ proof (simp add: z_machine_def z_machine_main_def, rule deadlock_free_processI, 
     then show ?case
       by (metis foldr.simps(2) hl_choice list.set_intros(1) list.set_intros(2) o_apply)
   qed
-  show "`\<not> End \<and> Inv \<longrightarrow> dfp (foldr ExtChoice Events Stop)`"
+  show "`\<not> End \<and> Inv \<longrightarrow> dfp (foldr (\<box>) Events Stop)`"
     using assms(3) by auto
 qed
 
